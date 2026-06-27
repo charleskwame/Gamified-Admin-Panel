@@ -1,30 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import Sidebar from "./components/Sidebar";
-import DashboardPage from "./pages/DashboardPage";
-import StudentsPage from "./pages/StudentsPage";
-import StudentDetailPage from "./pages/StudentDetailPage";
-import QuestionsPage from "./pages/QuestionsPage";
 import LoadingSpinner from "./components/LoadingSpinner";
+
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const StudentsPage = lazy(() => import("./pages/StudentsPage"));
+const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
+const QuestionsPage = lazy(() => import("./pages/QuestionsPage"));
+
+function parseHash() {
+  const hash = window.location.hash.replace("#", "");
+  if (hash.startsWith("student/")) {
+    return { page: "student", uid: hash.slice(8) };
+  }
+  return { page: hash || "dashboard", uid: null };
+}
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [page, setPage] = useState("dashboard");
-  const [selectedUid, setSelectedUid] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  if (loading) return <LoadingSpinner text="Checking authentication..." />;
-  if (!user) return <LoginPage />;
+  const [route, setRoute] = useState(() => parseHash());
 
-  const navigate = (target, uid) => {
+  useEffect(() => {
+    const onHashChange = () => setRoute(parseHash());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  const navigate = useCallback((target, uid) => {
     if (target === "student" && uid) {
-      setSelectedUid(uid);
-      setPage("student");
+      window.location.hash = `student/${uid}`;
     } else {
-      setPage(target);
+      window.location.hash = target;
     }
-  };
+  }, []);
+
+  const goBack = useCallback(() => {
+    window.location.hash = "students";
+  }, []);
+
+  if (loading) return <LoadingSpinner text="Checking authentication..." />;
+  if (!user) {
+    // Clear hash on logout to avoid stale routes
+    if (window.location.hash) window.location.hash = "";
+    return <LoginPage />;
+  }
+
+  const { page, uid } = route;
 
   return (
     <div className="flex h-screen bg-[#F4F6FB]">
@@ -35,12 +59,14 @@ function AppContent() {
         onToggle={() => setSidebarCollapsed((p) => !p)}
       />
       <main className="flex-1 overflow-y-auto">
-        {page === "dashboard" && <DashboardPage onNavigate={navigate} />}
-        {page === "students" && <StudentsPage onNavigate={navigate} />}
-        {page === "student" && (
-          <StudentDetailPage uid={selectedUid} onBack={() => setPage("students")} />
-        )}
-        {page === "questions" && <QuestionsPage />}
+        <Suspense fallback={<div className="p-6"><LoadingSpinner text="Loading page..." /></div>}>
+          {page === "dashboard" && <DashboardPage onNavigate={navigate} />}
+          {page === "students" && <StudentsPage onNavigate={navigate} />}
+          {page === "student" && (
+            <StudentDetailPage uid={uid} onBack={goBack} />
+          )}
+          {page === "questions" && <QuestionsPage />}
+        </Suspense>
       </main>
     </div>
   );

@@ -102,11 +102,11 @@ export default function QuestionsPage() {
   ) : null;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{COURSE_LABEL[course]} &mdash; {questions.length} questions</p>
+          <p className="text-sm text-gray-500 mt-0.5">{COURSE_LABEL[course]} &bull; {questions.length} question{questions.length !== 1 ? "s" : ""}</p>
         </div>
         <button onClick={() => { setShowForm(!showForm); setError(""); setSuccess(""); }}
           className="px-4 py-2 bg-[#111C4A] text-white text-sm font-bold hover:bg-[#1a2a6e] whitespace-nowrap">
@@ -187,20 +187,20 @@ export default function QuestionsPage() {
               {paginationBar}
             <div className="divide-y divide-gray-100">
               {paginatedQuestions.map((q) => (
-                <div key={q.id} className="px-6 py-4">
+                <div key={q.id} className="px-6 py-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 leading-relaxed">{q.questionText}</p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <p className="text-base font-bold text-gray-900 leading-relaxed">{q.questionText}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         {q.options?.map((opt, i) => (
                           <span key={i}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium border ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium border ${
                               opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-gray-50 text-gray-500 border-gray-200"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                : "bg-gray-50 text-gray-600 border-gray-200"
                             }`}>
                             {(opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")) && (
-                              <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                               </svg>
                             )}
@@ -208,18 +208,18 @@ export default function QuestionsPage() {
                           </span>
                         ))}
                       </div>
-                      {q.explanation && <p className="mt-1.5 text-xs text-gray-400 italic">{q.explanation}</p>}
-                      <div className="mt-1.5 flex items-center gap-3 text-[10px] text-gray-400">
+                      {q.explanation && <p className="mt-2 text-sm text-gray-400 italic">{q.explanation}</p>}
+                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
                         {q.addedBy && <span>Added by lecturer</span>}
                         {q.addedBy === user?.uid && <span className="text-[#111C4A] font-semibold">(you)</span>}
                         {q.createdAt?.toDate && <span>{q.createdAt.toDate().toLocaleDateString()}</span>}
                       </div>
                     </div>
-                    <div className="shrink-0">
+                    <div className="shrink-0 pt-0.5">
                       <button onClick={() => { setDeleteConfirm({ id: q.id, text: q.questionText }); }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
                         title="Delete question">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                         </svg>
                       </button>
