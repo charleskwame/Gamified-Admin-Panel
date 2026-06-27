@@ -1,9 +1,10 @@
-import { ChartBarIcon, UsersIcon } from "./Icons";
+import { ChartBarIcon, UsersIcon, ClipboardDocumentListIcon } from "./Icons";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { label: "Dashboard", icon: ChartBarIcon, path: "dashboard" },
   { label: "Students", icon: UsersIcon, path: "students" },
+  { label: "Questions", icon: ClipboardDocumentListIcon, path: "questions" },
 ];
 
 export default function Sidebar({ activePage, onNavigate, collapsed, onToggle }) {
@@ -59,6 +60,13 @@ export default function Sidebar({ activePage, onNavigate, collapsed, onToggle })
           <div className="mb-2 px-1">
             <p className="text-sm font-semibold truncate">{userData.displayName || "Lecturer"}</p>
             <p className="text-xs text-blue-200/60 truncate">{userData.email || ""}</p>
+            {userData.course && (
+              <span className="inline-block mt-1.5 px-2 py-0.5 bg-white/10 text-blue-200 text-[10px] font-semibold leading-tight">
+                {userData.course === "computer_architecture" && "Computer Architecture"}
+                {userData.course === "computer_networking" && "Computer Networking"}
+                {userData.course === "software_engineering" && "Software Engineering"}
+              </span>
+            )}
           </div>
         )}
         <button

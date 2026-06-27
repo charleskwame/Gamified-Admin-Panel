@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar";
 import DashboardPage from "./pages/DashboardPage";
 import StudentsPage from "./pages/StudentsPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
+import QuestionsPage from "./pages/QuestionsPage";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 function AppContent() {
@@ -39,6 +40,7 @@ function AppContent() {
         {page === "student" && (
           <StudentDetailPage uid={selectedUid} onBack={() => setPage("students")} />
         )}
+        {page === "questions" && <QuestionsPage />}
       </main>
     </div>
   );
