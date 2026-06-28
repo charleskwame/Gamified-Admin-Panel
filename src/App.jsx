@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthProvider";
+import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import Sidebar from "./components/Sidebar";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -18,7 +19,7 @@ function parseHash() {
 }
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, isChecking } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [route, setRoute] = useState(() => parseHash());
@@ -41,10 +42,10 @@ function AppContent() {
     window.location.hash = "students";
   }, []);
 
-  if (loading) return <LoadingSpinner text="Checking authentication..." />;
-  if (!user) {
-    // Clear hash on logout to avoid stale routes
-    if (window.location.hash) window.location.hash = "";
+  if (loading || isChecking) return <LoadingSpinner text="Verifying authentication status..." />;
+  if (!user || !user.emailVerified) {
+    // Clear hash on logout/unverified state to avoid stale routes
+    if (!user && window.location.hash) window.location.hash = "";
     return <LoginPage />;
   }
 

@@ -1,10 +1,38 @@
-import { useState, useEffect } from "react";
-import { auth } from "../firebase";
-import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
+function getFriendlyErrorMessage(err) {
+  const code = err.code || (err.message && err.message.includes("auth/") ? err.message : "");
+  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
+    return "Incorrect email or password.";
+  }
+  if (code.includes("auth/email-already-in-use")) {
+    return "This email is already registered. Please sign in instead.";
+  }
+  if (code.includes("auth/invalid-email")) {
+    return "Please enter a valid email address.";
+  }
+  if (code.includes("auth/weak-password")) {
+    return "Password must be at least 6 characters long.";
+  }
+  if (code.includes("auth/too-many-requests")) {
+    return "Too many failed attempts. Access to this account has been temporarily disabled. Please try again later.";
+  }
+
+  if (err.message) {
+    if (err.message.includes("Access denied")) {
+      return "Access denied. Only registered lecturers can access this panel.";
+    }
+    if (err.message.includes("User record not found")) {
+      return "Your user record could not be found. Please contact support.";
+    }
+    return err.message.replace("Firebase: ", "").split("(")[0].trim();
+  }
+  return "An unexpected error occurred. Please try again.";
+}
+
 export default function LoginPage() {
-  const { login, register, pendingVerificationEmail, pendingPassword, clearPendingVerification } = useAuth();
+  const { user, login, register, logout, resendVerification, checkEmailVerified } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -14,19 +42,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  // Show verification screen if we have a pending email from a recent sign-up
-  const showVerification = !!pendingVerificationEmail;
+  // Show verification screen if user is logged in but not verified
+  const showVerification = user && !user.emailVerified;
 
   const handleResend = async () => {
     setResending(true);
     setError("");
     try {
-      // Need to sign in briefly to resend verification email
-      const cred = await signInWithEmailAndPassword(auth, pendingVerificationEmail, pendingPassword);
-      await sendEmailVerification(cred.user);
-      await auth.signOut();
+      await resendVerification();
     } catch (err) {
-      setError("Could not resend. Try signing in and it will prompt you.");
+      setError(getFriendlyErrorMessage(err));
     }
     setResending(false);
   };
@@ -35,11 +60,23 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      // If email is verified, login will succeed. If not, it throws.
-      await login(pendingVerificationEmail, pendingPassword);
-      clearPendingVerification();
+      const verified = await checkEmailVerified();
+      if (!verified) {
+        setError("Email not verified yet. Please check your inbox.");
+      }
     } catch (err) {
-      setError(err.message.replace("Firebase: ", "").split("(")[0].trim() || "Email not verified yet");
+      setError(getFriendlyErrorMessage(err));
+    }
+    setLoading(false);
+  };
+
+  const handleCancelVerification = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await logout();
+    } catch (err) {
+      setError(getFriendlyErrorMessage(err));
     }
     setLoading(false);
   };
@@ -56,12 +93,11 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         await register({ email: email.trim(), password, displayName: displayName.trim(), course });
-        // register sets pendingVerificationEmail in context — component re-renders with verification screen
       } else {
         await login(email.trim(), password);
       }
     } catch (err) {
-      setError(err.message.replace("Firebase: ", "").split("(")[0].trim() || (isSignUp ? "Registration failed" : "Login failed"));
+      setError(getFriendlyErrorMessage(err));
     } finally { setLoading(false); }
   };
 
@@ -78,8 +114,8 @@ export default function LoginPage() {
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900">Verify Your Email</h1>
             <p className="text-sm text-gray-500 mt-3 leading-relaxed">
-              We sent a verification email to <strong className="text-gray-800">{pendingVerificationEmail}</strong>.
-              Click the link in the email to activate your account, then sign in.
+              We sent a verification email to <strong className="text-gray-800">{user?.email}</strong>.
+              Click the link in the email to activate your account, then check status below.
             </p>
           </div>
           <div className="bg-white border border-gray-200 p-8 space-y-4">
@@ -88,13 +124,17 @@ export default function LoginPage() {
               className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Checking...
                 </span>
-              ) : "I\u2019ve verified \u2014 Sign In"}
+              ) : "I've verified - Proceed"}
             </button>
             <button onClick={handleResend} disabled={resending}
               className="w-full py-2.5 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all">
               {resending ? "Resending..." : "Resend verification email"}
+            </button>
+            <button onClick={handleCancelVerification} disabled={loading}
+              className="w-full py-2.5 border border-transparent text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 transition-all">
+              Back to Sign In / Cancel
             </button>
           </div>
           <p className="text-center text-xs text-gray-400 mt-6">Can't find the email? Check your spam folder.</p>
