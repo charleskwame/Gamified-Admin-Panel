@@ -9,6 +9,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 const QuestionsPage = lazy(() => import("./pages/QuestionsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 function parseHash() {
   const hash = window.location.hash.replace("#", "");
@@ -67,6 +68,7 @@ function AppContent() {
             <StudentDetailPage uid={uid} onBack={goBack} />
           )}
           {page === "questions" && <QuestionsPage />}
+          {page === "settings" && <SettingsPage />}
         </Suspense>
       </main>
     </div>
