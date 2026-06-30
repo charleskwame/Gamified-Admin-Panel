@@ -1,32 +1,59 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
+function validateEmail(email) {
+  if (!email.trim()) return "Email is required.";
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!re.test(email.trim())) return "Please enter a valid email address.";
+  return "";
+}
+
+function validatePassword(password) {
+  if (!password) return "Password is required.";
+  const checks = [];
+  if (password.length < 8) checks.push("at least 8 characters");
+  if (!/[A-Z]/.test(password)) checks.push("one uppercase letter");
+  if (!/[0-9]/.test(password)) checks.push("one number");
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) checks.push("one symbol (e.g. !@#$%)");
+  if (checks.length === 0) return "";
+  return `Password must contain: ${checks.join(", ")}.`;
+}
+
+function getPasswordChecks(password) {
+  return {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+    symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password),
+  };
+}
+
 function getFriendlyErrorMessage(err) {
-  const code = err.code || (err.message && err.message.includes("auth/") ? err.message : "");
-  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
-    return "Incorrect email or password.";
-  }
+  const msg = err?.message || "";
+  const code = err?.code || "";
   if (code.includes("auth/email-already-in-use")) {
     return "This email is already registered. Please sign in instead.";
+  }
+  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password") || code.includes("auth/user-not-found")) {
+    return "Incorrect email or password.";
   }
   if (code.includes("auth/invalid-email")) {
     return "Please enter a valid email address.";
   }
   if (code.includes("auth/weak-password")) {
-    return "Password must be at least 6 characters long.";
+    return "Password is too weak. It must be at least 8 characters with an uppercase letter, a number, and a symbol.";
   }
   if (code.includes("auth/too-many-requests")) {
     return "Too many failed attempts. Access to this account has been temporarily disabled. Please try again later.";
   }
-
-  if (err.message) {
-    if (err.message.includes("Access denied")) {
-      return "Access denied. Only registered lecturers can access this panel.";
-    }
-    if (err.message.includes("User record not found")) {
-      return "Your user record could not be found. Please contact support.";
-    }
-    return err.message.replace("Firebase: ", "").split("(")[0].trim();
+  if (msg.includes("Access denied")) {
+    return "Access denied. Only registered lecturers can access this panel.";
+  }
+  if (msg.includes("User record not found")) {
+    return "Your user record could not be found. Please contact support.";
+  }
+  if (msg) {
+    return msg.replace("Firebase: ", "").replace("FirebaseError: ", "").split("(")[0].trim();
   }
   return "An unexpected error occurred. Please try again.";
 }
@@ -39,8 +66,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [course, setCourse] = useState("");
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
 
   // Show verification screen if user is logged in but not verified
   const showVerification = user && !user.emailVerified;
@@ -81,9 +112,55 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const handleEmailBlur = () => {
+    setEmailTouched(true);
+    setEmailError(validateEmail(email));
+  };
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    if (emailError) {
+      setEmailError(validateEmail(e.target.value));
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const val = e.target.value;
+    setPassword(val);
+    if (isSignUp) {
+      setPasswordTouched(true);
+      // Real-time validation on input (sign up only)
+      const err = validatePassword(val);
+      setPasswordError(err);
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    if (isSignUp) {
+      setPasswordTouched(true);
+      setPasswordError(validatePassword(password));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Run field-level validations
+    const emailErr = validateEmail(email);
+    setEmailError(emailErr);
+    setEmailTouched(true);
+
+    // Only validate password rules on sign up
+    if (isSignUp) {
+      const passwordErr = validatePassword(password);
+      setPasswordError(passwordErr);
+      setPasswordTouched(true);
+      if (emailErr || passwordErr) return;
+    } else if (emailErr) {
+      return;
+    }
+
     if (!email.trim() || !password.trim()) { setError("Please enter email and password."); return; }
     if (isSignUp) {
       if (!displayName.trim()) { setError("Please enter your display name."); return; }
@@ -100,6 +177,17 @@ export default function LoginPage() {
       setError(getFriendlyErrorMessage(err));
     } finally { setLoading(false); }
   };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setError("");
+    setEmailError("");
+    setPasswordError("");
+    setEmailTouched(false);
+    setPasswordTouched(false);
+  };
+
+  const passwordChecks = getPasswordChecks(password);
 
   // Verification sent screen
   if (showVerification) {
@@ -156,7 +244,7 @@ export default function LoginPage() {
           <p className="text-sm text-gray-400 mt-1">{isSignUp ? "Create a lecturer account" : "Sign in to monitor student progress"}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-5" noValidate>
           {error && (
             <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3">
               <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -177,16 +265,90 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="lecturer@example.com" autoFocus={!isSignUp}
-              className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all" />
+            <input
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
+              placeholder="lecturer@example.com"
+              autoFocus={!isSignUp}
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all ${emailError ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+                }`}
+            />
+            {emailError && (
+              <p className="mt-1.5 text-xs font-medium text-red-600 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {emailError}
+              </p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            <input
+              type="password"
+              value={password}
+              onChange={handlePasswordChange}
+              onBlur={handlePasswordBlur}
               placeholder="Enter your password"
-              className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all" />
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all ${passwordError && passwordTouched ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+                }`}
+            />
+            {isSignUp && password.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-semibold text-gray-500 mb-1.5">Password must have:</p>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.length ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  )}
+                  <span className={`text-xs ${passwordChecks.length ? "text-emerald-600" : "text-gray-400"}`}>At least 8 characters</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.uppercase ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  )}
+                  <span className={`text-xs ${passwordChecks.uppercase ? "text-emerald-600" : "text-gray-400"}`}>One uppercase letter</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.number ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  )}
+                  <span className={`text-xs ${passwordChecks.number ? "text-emerald-600" : "text-gray-400"}`}>One number</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.symbol ? (
+                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  )}
+                  <span className={`text-xs ${passwordChecks.symbol ? "text-emerald-600" : "text-gray-400"}`}>One symbol (e.g. !@#$%)</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {isSignUp && (
@@ -213,7 +375,7 @@ export default function LoginPage() {
           </button>
 
           <div className="text-center pt-1">
-            <button type="button" onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+            <button type="button" onClick={toggleMode}
               className="text-sm font-medium text-[#111C4A] hover:underline">
               {isSignUp ? "Already have an account? Sign In" : "Don\u2019t have an account? Register as Lecturer"}
             </button>
