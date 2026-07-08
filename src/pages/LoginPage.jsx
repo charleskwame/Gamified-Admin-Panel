@@ -161,10 +161,19 @@ export default function LoginPage() {
       return;
     }
 
-    if (!email.trim() || !password.trim()) { setError("Please enter email and password."); return; }
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter email and password.");
+      return;
+    }
     if (isSignUp) {
-      if (!displayName.trim()) { setError("Please enter your display name."); return; }
-      if (!course) { setError("Please select the course you teach."); return; }
+      if (!displayName.trim()) {
+        setError("Please enter your display name.");
+        return;
+      }
+      if (!course) {
+        setError("Please select the course you teach.");
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -175,7 +184,9 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(getFriendlyErrorMessage(err));
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleMode = () => {
@@ -195,33 +206,49 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#F4F6FB] flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-emerald-100 flex items-center justify-center mx-auto mb-4 rounded-xl">
               <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V19.5z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V19.5z"
+                />
               </svg>
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900">Verify Your Email</h1>
             <p className="text-sm text-gray-500 mt-3 leading-relaxed">
-              We sent a verification email to <strong className="text-gray-800">{user?.email}</strong>.
-              Click the link in the email to activate your account, then check status below.
+              We sent a verification email to <strong className="text-gray-800">{user?.email}</strong>. Click the link in the email to activate your
+              account, then check status below.
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-8 space-y-4">
-            {error && <div className="bg-red-50 border border-red-200 px-4 py-3"><p className="text-sm font-medium text-red-700">{error}</p></div>}
-            <button onClick={handleCheckVerification} disabled={loading}
-              className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm">
+          <div className="bg-white border border-gray-200 p-8 space-y-4 rounded-xl">
+            {error && (
+              <div className="bg-red-50 border border-red-200 px-4 py-3">
+                <p className="text-sm font-medium text-red-700">{error}</p>
+              </div>
+            )}
+            <button
+              onClick={handleCheckVerification}
+              disabled={loading}
+              className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm rounded-lg">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Checking...
                 </span>
-              ) : "I've verified - Proceed"}
+              ) : (
+                "I've verified - Proceed"
+              )}
             </button>
-            <button onClick={handleResend} disabled={resending}
-              className="w-full py-2.5 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all">
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="w-full py-2.5 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all rounded-lg">
               {resending ? "Resending..." : "Resend verification email"}
             </button>
-            <button onClick={handleCancelVerification} disabled={loading}
-              className="w-full py-2.5 border border-transparent text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 transition-all">
+            <button
+              onClick={handleCancelVerification}
+              disabled={loading}
+              className="w-full py-2.5 border border-transparent text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 transition-all rounded-lg">
               Back to Sign In / Cancel
             </button>
           </div>
@@ -235,18 +262,22 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#F4F6FB] flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#111C4A] flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[#111C4A] flex items-center justify-center mx-auto mb-4 rounded-xl">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
             </svg>
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900">Lecturer Dashboard</h1>
           <p className="text-sm text-gray-400 mt-1">{isSignUp ? "Create a lecturer account" : "Sign in to monitor student progress"}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-5" noValidate>
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-5 rounded-xl" noValidate>
           {error && (
-            <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3">
+            <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 rounded-lg">
               <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -257,9 +288,14 @@ export default function LoginPage() {
           {isSignUp && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Display Name</label>
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Dr. Jane Smith" autoFocus
-                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all" />
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Dr. Jane Smith"
+                autoFocus
+                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all rounded-lg"
+              />
             </div>
           )}
 
@@ -272,8 +308,9 @@ export default function LoginPage() {
               onBlur={handleEmailBlur}
               placeholder="lecturer@example.com"
               autoFocus={!isSignUp}
-              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all ${emailError ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
-                }`}
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all rounded-lg ${
+                emailError ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+              }`}
             />
             {emailError && (
               <p className="mt-1.5 text-xs font-medium text-red-600 flex items-center gap-1">
@@ -293,8 +330,9 @@ export default function LoginPage() {
               onChange={handlePasswordChange}
               onBlur={handlePasswordBlur}
               placeholder="Enter your password"
-              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all ${passwordError && passwordTouched ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
-                }`}
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all rounded-lg ${
+                passwordError && passwordTouched ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+              }`}
             />
             {isSignUp && password.length > 0 && (
               <div className="mt-2 space-y-1">
@@ -354,8 +392,10 @@ export default function LoginPage() {
           {isSignUp && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Course You Teach</label>
-              <select value={course} onChange={(e) => setCourse(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all bg-white">
+              <select
+                value={course}
+                onChange={(e) => setCourse(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all bg-white rounded-lg">
                 <option value="">Select a course...</option>
                 <option value="computer_architecture">Computer Architecture</option>
                 <option value="computer_networking">Computer Networking</option>
@@ -364,19 +404,24 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
-            className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm rounded-lg">
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 {isSignUp ? "Creating account..." : "Signing in..."}
               </span>
-            ) : (isSignUp ? "Create Lecturer Account" : "Sign In")}
+            ) : isSignUp ? (
+              "Create Lecturer Account"
+            ) : (
+              "Sign In"
+            )}
           </button>
 
           <div className="text-center pt-1">
-            <button type="button" onClick={toggleMode}
-              className="text-sm font-medium text-[#111C4A] hover:underline">
+            <button type="button" onClick={toggleMode} className="text-sm font-medium text-[#111C4A] hover:underline">
               {isSignUp ? "Already have an account? Sign In" : "Don\u2019t have an account? Register as Lecturer"}
             </button>
           </div>

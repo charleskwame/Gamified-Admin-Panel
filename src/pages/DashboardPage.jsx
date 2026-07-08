@@ -132,7 +132,7 @@ export default function DashboardPage({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 p-6">
+        <div className="bg-white border border-gray-200 p-6 rounded-xl">
           <h2 className="text-base font-bold text-gray-800 mb-4">Total Points by Subject</h2>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={categoryData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
@@ -150,7 +150,7 @@ export default function DashboardPage({ onNavigate }) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="bg-white border border-gray-200 p-6">
+        <div className="bg-white border border-gray-200 p-6 rounded-xl">
           <h2 className="text-base font-bold text-gray-800 mb-4">{COURSE_CONFIG[course]?.label || "Course"} Performance</h2>
           {course && stats ? (
             <div className="space-y-4">
@@ -179,7 +179,7 @@ export default function DashboardPage({ onNavigate }) {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-800">Top Students</h2>
           <button onClick={() => onNavigate("students")} className="text-xs font-semibold text-[#111C4A] hover:underline">
@@ -204,7 +204,7 @@ export default function DashboardPage({ onNavigate }) {
                   <td className="px-6 py-3 font-bold text-gray-300 text-xs">{i + 1}</td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 bg-[#111C4A]/10 flex items-center justify-center text-xs font-bold text-[#111C4A] shrink-0">
+                      <div className="w-8 h-8 bg-[#111C4A]/10 flex items-center justify-center text-xs font-bold text-[#111C4A] shrink-0 rounded-lg">
                         {(s.displayName || "?").charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -216,7 +216,7 @@ export default function DashboardPage({ onNavigate }) {
                   <td className="px-6 py-3 font-bold text-gray-900">{course ? (s[COURSE_CONFIG[course]?.ptsField] ?? 0) : (s.score ?? 0)}</td>
                   <td className="px-6 py-3">
                     {(s.streakNumber || 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-600 rounded-md text-xs font-semibold">
                         <FireIcon className="w-3.5 h-3.5" /> {s.streakNumber}
                       </span>
                     ) : (

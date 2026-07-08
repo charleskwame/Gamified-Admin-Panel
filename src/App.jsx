@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { AuthProvider } from "./context/AuthProvider";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
-import Sidebar from "./components/Sidebar";
+import TopNav from "./components/TopNav";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -21,7 +21,6 @@ function parseHash() {
 
 function AppContent() {
   const { user, loading, isChecking } = useAuth();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [route, setRoute] = useState(() => parseHash());
 
@@ -53,20 +52,18 @@ function AppContent() {
   const { page, uid } = route;
 
   return (
-    <div className="flex h-screen bg-[#F4F6FB]">
-      <Sidebar
-        activePage={page === "student" ? "students" : page}
-        onNavigate={navigate}
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((p) => !p)}
-      />
+    <div className="flex flex-col h-screen bg-[#F4F6FB]">
+      <TopNav activePage={page === "student" ? "students" : page} onNavigate={navigate} />
       <main className="flex-1 overflow-y-auto">
-        <Suspense fallback={<div className="p-6"><LoadingSpinner text="Loading page..." /></div>}>
+        <Suspense
+          fallback={
+            <div className="p-6">
+              <LoadingSpinner text="Loading page..." />
+            </div>
+          }>
           {page === "dashboard" && <DashboardPage onNavigate={navigate} />}
           {page === "students" && <StudentsPage onNavigate={navigate} />}
-          {page === "student" && (
-            <StudentDetailPage uid={uid} onBack={goBack} />
-          )}
+          {page === "student" && <StudentDetailPage uid={uid} onBack={goBack} />}
           {page === "questions" && <QuestionsPage />}
           {page === "settings" && <SettingsPage />}
         </Suspense>

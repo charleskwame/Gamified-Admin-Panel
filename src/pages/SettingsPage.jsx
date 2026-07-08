@@ -98,7 +98,7 @@ export default function SettingsPage() {
   };
 
   const inputClass =
-    "w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] transition-colors";
+    "w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] transition-colors rounded-lg";
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -113,27 +113,18 @@ export default function SettingsPage() {
 
       <div className="space-y-8">
         {/* ---------- Change Username ---------- */}
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
             <AcademicCapIcon className="w-5 h-5 text-[#111C4A]" />
             <h2 className="text-base font-bold text-gray-800">Change Username</h2>
           </div>
           <form onSubmit={handleUsernameSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                Current Email
-              </label>
-              <input
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`}
-              />
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Email</label>
+              <input type="email" value={user?.email || ""} disabled className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                New Username
-              </label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Username</label>
               <input
                 type="text"
                 value={username}
@@ -146,12 +137,11 @@ export default function SettingsPage() {
 
             {usernameMsg && (
               <div
-                className={`px-4 py-2.5 text-sm font-medium ${
+                className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
                   usernameMsg.type === "success"
                     ? "bg-green-50 text-green-700 border border-green-200"
                     : "bg-red-50 text-red-700 border border-red-200"
-                }`}
-              >
+                }`}>
                 {usernameMsg.text}
               </div>
             )}
@@ -159,24 +149,21 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={usernameSaving}
-              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
               {usernameSaving ? "Saving..." : "Update Username"}
             </button>
           </form>
         </div>
 
         {/* ---------- Change Password ---------- */}
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
             <ShieldCheckIcon className="w-5 h-5 text-[#111C4A]" />
             <h2 className="text-base font-bold text-gray-800">Change Password</h2>
           </div>
           <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                Current Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Password</label>
               <input
                 type="password"
                 value={currentPassword}
@@ -187,9 +174,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                New Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Password</label>
               <input
                 type="password"
                 value={newPassword}
@@ -200,9 +185,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">
-                Confirm New Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Confirm New Password</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -215,12 +198,11 @@ export default function SettingsPage() {
 
             {passwordMsg && (
               <div
-                className={`px-4 py-2.5 text-sm font-medium ${
+                className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
                   passwordMsg.type === "success"
                     ? "bg-green-50 text-green-700 border border-green-200"
                     : "bg-red-50 text-red-700 border border-red-200"
-                }`}
-              >
+                }`}>
                 {passwordMsg.text}
               </div>
             )}
@@ -228,8 +210,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={passwordSaving}
-              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
               {passwordSaving ? "Updating..." : "Update Password"}
             </button>
           </form>
@@ -238,6 +219,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-
