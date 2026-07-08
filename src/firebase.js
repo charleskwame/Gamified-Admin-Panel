@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDzMabyHcncz1Ljp6QcdTwfITVvkaRbw9I",
-  authDomain: "gamified-quiz-app-702a7.firebaseapp.com",
-  projectId: "gamified-quiz-app-702a7",
-  storageBucket: "gamified-quiz-app-702a7.firebasestorage.app",
-  messagingSenderId: "936507886677",
-  appId: "1:936507886677:web:75bcda1ca4e15b94ead8dc",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);

@@ -4,16 +4,55 @@ import { db } from "../firebase";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { FireIcon } from "../components/Icons";
+import { useAuth } from "../context/AuthContext";
+import { auditLog } from "../utils/security";
 
 export default function StudentDetailPage({ uid, onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const { userData } = useAuth();
+  const lecturerCourse = userData?.course;
 
   useEffect(() => {
     const fetchStudent = async () => {
       try {
         const snap = await getDoc(doc(db, "users", uid));
-        if (snap.exists()) setData({ uid, ...snap.data() });
+        if (snap.exists()) {
+          const studentData = { uid, ...snap.data() };
+
+          // Authorization check: only allow viewing students if no course filter,
+          // or if the student has data in the lecturer's course
+          if (lecturerCourse) {
+            const coursePointsField = {
+              computer_architecture: "computerArchitecturePoints",
+              computer_networking: "computerNetworkingPoints",
+              software_engineering: "softwareEngineeringPoints",
+            }[lecturerCourse];
+
+            const studentHasCourseData = coursePointsField
+              ? (studentData[coursePointsField] || 0) > 0 || (studentData.questionsAnswered || 0) > 0
+              : true;
+
+            if (!studentHasCourseData) {
+              setAccessDenied(true);
+              auditLog("student_access_denied", {
+                lecturerCourse: lecturerCourse,
+                targetUid: uid,
+                reason: "Student has no data in lecturer's course",
+              });
+              setLoading(false);
+              return;
+            }
+          }
+
+          setData(studentData);
+
+          auditLog("student_detail_viewed", {
+            lecturerCourse: lecturerCourse,
+            targetUid: uid,
+          });
+        }
       } catch (err) {
         console.error("Student fetch error:", err);
       } finally {
@@ -21,9 +60,23 @@ export default function StudentDetailPage({ uid, onBack }) {
       }
     };
     if (uid) fetchStudent();
-  }, [uid]);
+  }, [uid, lecturerCourse]);
 
   if (loading) return <LoadingSpinner text="Loading student details..." />;
+
+  if (accessDenied) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <button onClick={onBack} className="text-sm font-semibold text-[#111C4A] hover:underline mb-4 inline-flex items-center gap-1">
+          ← Back
+        </button>
+        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+          <p className="text-sm font-medium text-red-700">Access denied. You can only view students enrolled in your course.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!data)
     return (
       <div className="p-6 max-w-4xl mx-auto">

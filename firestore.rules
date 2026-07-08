@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if the requester is an authenticated lecturer
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isLecturer() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/lecturers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/lecturers/$(request.auth.uid)).data.role == "lecturer";
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Lecturers collection: only the owning lecturer can read/write their own doc
+    match /lecturers/{lecturerId} {
+      allow read, write: if isOwner(lecturerId);
+    }
+
+    // Users collection (students): only authenticated lecturers can read
+    match /users/{userId} {
+      allow read: if isLecturer();
+      // Students should only be writable through the student app, not here
+      allow write: if false;
+    }
+
+    // Questions collections: only lecturers can read/write
+    match /computer_architecture_questions/{questionId} {
+      allow read, write: if isLecturer();
+    }
+
+    match /computer_networking_questions/{questionId} {
+      allow read, write: if isLecturer();
+    }
+
+    match /software_engineering_questions/{questionId} {
+      allow read, write: if isLecturer();
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

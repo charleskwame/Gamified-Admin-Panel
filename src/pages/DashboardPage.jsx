@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { UsersIcon, DocumentTextIcon, StarIcon, FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { auditLog } from "../utils/security";
 
 const todayStr = () => {
   const d = new Date();
@@ -100,6 +101,11 @@ export default function DashboardPage({ onNavigate }) {
           return (b.score || 0) - (a.score || 0);
         });
         setStudents(sorted.slice(0, 10));
+
+        auditLog("dashboard_viewed", {
+          course: course,
+          totalStudents: total,
+        });
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {

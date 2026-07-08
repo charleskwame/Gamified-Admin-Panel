@@ -43,7 +43,8 @@ export default function SettingsPage() {
       userData.displayName = trimmed;
       setUsernameMsg({ type: "success", text: "Username updated successfully!" });
     } catch (err) {
-      setUsernameMsg({ type: "error", text: err.message || "Failed to update username." });
+      // Use generic error message to avoid leaking internal details
+      setUsernameMsg({ type: "error", text: "Failed to update username." });
     } finally {
       setUsernameSaving(false);
     }
@@ -62,8 +63,21 @@ export default function SettingsPage() {
       setPasswordMsg({ type: "error", text: "New password is required." });
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordMsg({ type: "error", text: "New password must be at least 6 characters." });
+    // Enforce consistent password policy matching registration requirements
+    if (newPassword.length < 8) {
+      setPasswordMsg({ type: "error", text: "New password must be at least 8 characters." });
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      setPasswordMsg({ type: "error", text: "New password must contain at least one uppercase letter." });
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setPasswordMsg({ type: "error", text: "New password must contain at least one number." });
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)) {
+      setPasswordMsg({ type: "error", text: "New password must contain at least one symbol (e.g. !@#$%)." });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -83,11 +97,11 @@ export default function SettingsPage() {
       setPasswordMsg({ type: "success", text: "Password updated successfully!" });
     } catch (err) {
       const code = err.code || "";
-      let msg = err.message || "Failed to update password.";
+      let msg = "Failed to update password.";
       if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
         msg = "Current password is incorrect.";
       } else if (code === "auth/weak-password") {
-        msg = "New password is too weak. Use at least 6 characters.";
+        msg = "New password is too weak. Use at least 8 characters with uppercase, number, and symbol.";
       } else if (code === "auth/requires-recent-login") {
         msg = "Please log out and log back in before changing your password.";
       }
@@ -179,7 +193,7 @@ export default function SettingsPage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password (min. 6 characters)"
+                placeholder="Enter new password (min. 8 characters, uppercase, number, symbol)"
                 className={inputClass}
                 autoComplete="new-password"
               />

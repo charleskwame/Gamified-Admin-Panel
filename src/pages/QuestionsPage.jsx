@@ -3,6 +3,7 @@ import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "fi
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { sanitizeObject, validateCourseAccess, auditLog } from "../utils/security";
 
 const COURSE_COLLECTION = {
   computer_architecture: "computer_architecture_questions",
@@ -66,6 +67,14 @@ export default function QuestionsPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    // Validate course access before write
+    const accessCheck = validateCourseAccess(course, collectionName);
+    if (!accessCheck.allowed) {
+      setError(accessCheck.error);
+      return;
+    }
+
     if (!form.questionText.trim()) {
       setError("Question text is required.");
       return;
@@ -85,7 +94,8 @@ export default function QuestionsPage() {
     }
     setSaving(true);
     try {
-      await addDoc(collection(db, collectionName), {
+      // Sanitize input data before writing to Firestore
+      var sanitizedData = sanitizeObject({
         questionText: form.questionText.trim(),
         options: opts,
         correctAnswer: form.correctAnswer.trim(),
@@ -94,6 +104,15 @@ export default function QuestionsPage() {
         addedBy: user.uid,
         createdAt: serverTimestamp(),
       });
+
+      await addDoc(collection(db, collectionName), sanitizedData);
+
+      auditLog("question_added", {
+        userId: user.uid,
+        course: course,
+        collectionName: collectionName,
+      });
+
       setSuccess("Question added!");
       setForm({ questionText: "", optionA: "", optionB: "", optionC: "", optionD: "", correctAnswer: "", explanation: "" });
       setShowForm(false);
@@ -105,10 +124,25 @@ export default function QuestionsPage() {
   };
 
   const handleDelete = async (qid) => {
+    // Validate course access before delete
+    const accessCheck = validateCourseAccess(course, collectionName);
+    if (!accessCheck.allowed) {
+      setError(accessCheck.error);
+      return;
+    }
+
     setError("");
     setSuccess("");
     try {
       await deleteDoc(doc(db, collectionName, qid));
+
+      auditLog("question_deleted", {
+        userId: user.uid,
+        questionId: qid,
+        course: course,
+        collectionName: collectionName,
+      });
+
       setSuccess("Question deleted.");
       setDeleteConfirm(null);
       setQuestions((prev) => prev.filter((q) => q.id !== qid));
@@ -122,6 +156,19 @@ export default function QuestionsPage() {
       <div className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
         <p className="text-sm text-gray-500 mt-2">No course selected in your profile.</p>
+      </div>
+    );
+  }
+
+  // Validate course access for the page
+  var courseAccess = validateCourseAccess(course, collectionName);
+  if (!courseAccess.allowed) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
+        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg mt-4">
+          <p className="text-sm font-medium text-red-700">{courseAccess.error}</p>
+        </div>
       </div>
     );
   }

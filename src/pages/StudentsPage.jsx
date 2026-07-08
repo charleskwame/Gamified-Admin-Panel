@@ -3,19 +3,48 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { SearchIcon, FireIcon } from "../components/Icons";
+import { useAuth } from "../context/AuthContext";
+import { auditLog } from "../utils/security";
 
 export default function StudentsPage({ onNavigate }) {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("score");
   const [loading, setLoading] = useState(true);
+  const { userData } = useAuth();
+  const course = userData?.course || null;
+
+  const COURSE_CONFIG = {
+    computer_architecture: {
+      ptsField: "computerArchitecturePoints",
+      label: "CA",
+    },
+    computer_networking: {
+      ptsField: "computerNetworkingPoints",
+      label: "CN",
+    },
+    software_engineering: {
+      ptsField: "softwareEngineeringPoints",
+      label: "SE",
+    },
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
         const snap = await getDocs(collection(db, "users"));
         const all = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((u) => u.role !== "lecturer");
-        setStudents(all);
+
+        // If lecturer has a course, filter students to only those with data in that course
+        const cfg = COURSE_CONFIG[course];
+        const filtered = cfg ? all.filter((u) => (u[cfg.ptsField] || 0) > 0 || (u.questionsAnswered || 0) > 0) : all;
+
+        setStudents(filtered);
+
+        auditLog("students_list_viewed", {
+          course: course,
+          totalStudents: filtered.length,
+        });
       } catch (err) {
         console.error("Students fetch error:", err);
       } finally {
@@ -23,7 +52,7 @@ export default function StudentsPage({ onNavigate }) {
       }
     };
     fetchAll();
-  }, []);
+  }, [course]);
 
   const sorted = [...students].sort((a, b) => {
     if (sortKey === "name") return (a.displayName || "").localeCompare(b.displayName || "");
