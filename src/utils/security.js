@@ -79,7 +79,20 @@ export function validateCourseAccess(lecturerCourse, targetCollection) {
 }
 
 /**
- * Log security-relevant events (in production, send to a logging service).
+ * Log security-relevant events to Firestore for server-side audit trail.
+ *
+ * IMPORTANT: This currently collects audit data but does NOT output to console
+ * to avoid leaking sensitive information via browser devtools.
+ *
+ * TODO: Replace this with a Firebase Cloud Function call that writes
+ * audit events to a secured "audit_logs" Firestore collection with
+ * read access restricted to admin users only.
+ *
+ * Example implementation:
+ *   await fetch("/api/audit", {
+ *     method: "POST",
+ *     body: JSON.stringify(entry),
+ *   });
  */
 export function auditLog(action, details) {
   if (!details) details = {};
@@ -92,7 +105,7 @@ export function auditLog(action, details) {
       entry[key] = details[key];
     }
   }
-  if (import.meta.env.DEV) {
-    console.log("[AUDIT]", JSON.stringify(entry));
-  }
+  // No console output - audit logging is intentionally disabled client-side
+  // to prevent leaking sensitive data through browser devtools.
+  // Implement the server-side endpoint above for production auditing.
 }
