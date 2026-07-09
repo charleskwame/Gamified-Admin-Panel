@@ -326,45 +326,55 @@ export default function InsightsPage() {
                     </div>
                   </div>
 
-                  {/* Priority Topics */}
-                  {aiAnalysis.priorityTopics && aiAnalysis.priorityTopics.length > 0 && (
+                  {/* Recommended Learning Materials */}
+                  {aiAnalysis.learningMaterials && aiAnalysis.learningMaterials.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Priority Topics</h3>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <span>📚</span> Recommended Learning Materials
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-3">Share these resources with students to help them strengthen weak areas:</p>
                       <div className="space-y-2">
-                        {aiAnalysis.priorityTopics.map((topic, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm font-medium text-gray-800">{topic.topic}</span>
-                            <span className="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">{topic.count} misses</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Learning Pathways */}
-                  {aiAnalysis.learningPathways && aiAnalysis.learningPathways.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Suggested Learning Pathways</h3>
-                      <div className="space-y-3">
-                        {aiAnalysis.learningPathways.map((pathway, i) => (
-                          <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        {aiAnalysis.learningMaterials.map((material, i) => (
+                          <div
+                            key={i}
+                            className={`border rounded-lg p-3 relative ${
+                              material.priority === "high" ? "border-blue-200 bg-blue-50/30" : "border-gray-200 bg-white"
+                            }`}>
                             <div className="flex items-start gap-3">
-                              <div
-                                className={`w-2 h-2 rounded-full mt-1.5 ${
-                                  pathway.priority === "high" ? "bg-red-500" : pathway.priority === "medium" ? "bg-amber-500" : "bg-emerald-500"
-                                }`}
-                              />
-                              <div className="flex-1">
-                                <h4 className="text-sm font-bold text-gray-900">{pathway.title}</h4>
-                                <p className="text-xs text-gray-500 mt-1">{pathway.description}</p>
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {pathway.topics?.map((t, j) => (
-                                    <span key={j} className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">
-                                      {t}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 pr-16">
+                                  <h4 className="text-sm font-bold text-gray-900 truncate">{material.title}</h4>
+                                  {material.priority === "high" && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded shrink-0">
+                                      Recommended
                                     </span>
-                                  ))}
+                                  )}
                                 </div>
-                                {pathway.recommendedFormat && <p className="text-xs text-gray-400 mt-2 italic">{pathway.recommendedFormat}</p>}
+                                {material.resourceType && (
+                                  <span className="absolute top-3 right-3 px-2 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-600 rounded-full">
+                                    {material.resourceType}
+                                  </span>
+                                )}
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {material.topic && <span className="font-medium text-gray-600">[{material.topic}] </span>}
+                                  {material.description}
+                                </p>
+                                {material.url && (
+                                  <a
+                                    href={material.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                                      />
+                                    </svg>
+                                    Open resource
+                                  </a>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -421,90 +431,15 @@ export default function InsightsPage() {
                     </div>
                   )}
 
-                  {/* Student Study Plan */}
-                  {aiAnalysis.studentStudyGuide && (
+                  {/* Priority Topics */}
+                  {aiAnalysis.priorityTopics && aiAnalysis.priorityTopics.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <span>📖</span> {aiAnalysis.studentStudyGuide.title || "Student Study Plan"}
-                      </h3>
-                      {aiAnalysis.studentStudyGuide.summary && <p className="text-xs text-gray-500 mb-3">{aiAnalysis.studentStudyGuide.summary}</p>}
-                      {aiAnalysis.studentStudyGuide.sections && aiAnalysis.studentStudyGuide.sections.length > 0 && (
-                        <div className="space-y-2">
-                          {aiAnalysis.studentStudyGuide.sections.map((section, i) => (
-                            <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white">
-                              <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 bg-emerald-100 flex items-center justify-center rounded-full shrink-0 mt-0.5">
-                                  <span className="text-xs font-bold text-emerald-700">{i + 1}</span>
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-sm font-bold text-gray-900">{section.focusArea}</h4>
-                                  <p className="text-xs text-gray-500 mt-1">{section.whyImportant}</p>
-                                  {section.studyTips && section.studyTips.length > 0 && (
-                                    <ul className="mt-2 space-y-1">
-                                      {section.studyTips.map((tip, j) => (
-                                        <li key={j} className="text-xs text-gray-600 flex items-start gap-1.5">
-                                          <span className="text-emerald-500 mt-0.5">✓</span>
-                                          <span>{tip}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Recommended Learning Materials */}
-                  {aiAnalysis.learningMaterials && aiAnalysis.learningMaterials.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <span>📚</span> Recommended Learning Materials
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-3">Share these resources with students to help them strengthen weak areas:</p>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Priority Topics</h3>
                       <div className="space-y-2">
-                        {aiAnalysis.learningMaterials.map((material, i) => (
-                          <div
-                            key={i}
-                            className={`border rounded-lg p-3 ${
-                              material.priority === "high" ? "border-blue-200 bg-blue-50/30" : "border-gray-200 bg-white"
-                            }`}>
-                            <div className="flex items-start gap-3">
-                              <span className="text-base shrink-0 mt-0.5">{material.resourceType || "📄"}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-bold text-gray-900 truncate">{material.title}</h4>
-                                  {material.priority === "high" && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded shrink-0">
-                                      Recommended
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {material.topic && <span className="font-medium text-gray-600">[{material.topic}] </span>}
-                                  {material.description}
-                                </p>
-                                {material.url && (
-                                  <a
-                                    href={material.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                                      />
-                                    </svg>
-                                    Open resource
-                                  </a>
-                                )}
-                              </div>
-                            </div>
+                        {aiAnalysis.priorityTopics.map((topic, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium text-gray-800">{topic.topic}</span>
+                            <span className="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">{topic.count} misses</span>
                           </div>
                         ))}
                       </div>
@@ -545,9 +480,6 @@ High Priority Topics: ${aiAnalysis?.priorityTopics?.map((t) => t.topic).join(", 
 
 For Lecturer:
 ${aiAnalysis?.actionItems?.map((a) => `- ${a.title}: ${a.description}`).join("\n")}
-
-For Students - Study Plan:
-${aiAnalysis?.studentStudyGuide?.sections?.map((s) => `- ${s.focusArea}: ${s.whyImportant}`).join("\n") || "N/A"}
 
 Learning Materials:
 ${aiAnalysis?.learningMaterials?.map((m) => `- ${m.resourceType}: ${m.title} (${m.description})`).join("\n") || "N/A"}`;

@@ -347,8 +347,8 @@ export default function QuestionsPage() {
                               key={i}
                               className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium border ${
                                 opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                                  : "bg-gray-50 text-gray-600 border-gray-200"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 rounded-md"
+                                  : "bg-gray-50 text-gray-600 border-gray-200 rounded-md"
                               }`}>
                               {(opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")) && (
                                 <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
