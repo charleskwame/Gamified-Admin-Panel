@@ -4,6 +4,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { CogIcon, ShieldCheckIcon, AcademicCapIcon } from "../components/Icons";
+import ProgressBar from "../components/ProgressBar";
 
 export default function SettingsPage() {
   const { userData, user } = useAuth();
@@ -19,6 +20,9 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState(null);
   const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const inputClass =
+    "w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] transition-colors rounded-lg";
 
   // -------- Username Handler --------
   const handleUsernameSubmit = async (e) => {
@@ -111,125 +115,125 @@ export default function SettingsPage() {
     }
   };
 
-  const inputClass =
-    "w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] transition-colors rounded-lg";
-
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
-          <CogIcon className="w-6 h-6" />
-          Account Settings
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">Manage your account credentials</p>
-      </div>
-
-      <div className="space-y-8">
-        {/* ---------- Change Username ---------- */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
-            <AcademicCapIcon className="w-5 h-5 text-[#111C4A]" />
-            <h2 className="text-base font-bold text-gray-800">Change Username</h2>
-          </div>
-          <form onSubmit={handleUsernameSubmit} className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Email</label>
-              <input type="email" value={user?.email || ""} disabled className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter new username"
-                className={inputClass}
-                maxLength={50}
-              />
-            </div>
-
-            {usernameMsg && (
-              <div
-                className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
-                  usernameMsg.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
-                }`}>
-                {usernameMsg.text}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={usernameSaving}
-              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-              {usernameSaving ? "Saving..." : "Update Username"}
-            </button>
-          </form>
+    <>
+      <ProgressBar isLoading={usernameSaving || passwordSaving} />
+      <div className="p-6 max-w-3xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
+            <CogIcon className="w-6 h-6" />
+            Account Settings
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">Manage your account credentials</p>
         </div>
 
-        {/* ---------- Change Password ---------- */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
-            <ShieldCheckIcon className="w-5 h-5 text-[#111C4A]" />
-            <h2 className="text-base font-bold text-gray-800">Change Password</h2>
-          </div>
-          <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Password</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
-                className={inputClass}
-                autoComplete="current-password"
-              />
+        <div className="space-y-8">
+          {/* ---------- Change Username ---------- */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
+              <AcademicCapIcon className="w-5 h-5 text-[#111C4A]" />
+              <h2 className="text-base font-bold text-gray-800">Change Username</h2>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password (min. 8 characters, uppercase, number, symbol)"
-                className={inputClass}
-                autoComplete="new-password"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-1.5">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                className={inputClass}
-                autoComplete="new-password"
-              />
-            </div>
-
-            {passwordMsg && (
-              <div
-                className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
-                  passwordMsg.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
-                }`}>
-                {passwordMsg.text}
+            <form onSubmit={handleUsernameSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Email</label>
+                <input type="email" value={user?.email || ""} disabled className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter new username"
+                  className={inputClass}
+                  maxLength={50}
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={passwordSaving}
-              className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-              {passwordSaving ? "Updating..." : "Update Password"}
-            </button>
-          </form>
+              {usernameMsg && (
+                <div
+                  className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
+                    usernameMsg.type === "success"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                  }`}>
+                  {usernameMsg.text}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={usernameSaving}
+                className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
+                {usernameSaving ? "Saving..." : "Update Username"}
+              </button>
+            </form>
+          </div>
+
+          {/* ---------- Change Password ---------- */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
+              <ShieldCheckIcon className="w-5 h-5 text-[#111C4A]" />
+              <h2 className="text-base font-bold text-gray-800">Change Password</h2>
+            </div>
+            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className={inputClass}
+                  autoComplete="current-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min. 8 characters, uppercase, number, symbol)"
+                  className={inputClass}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className={inputClass}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {passwordMsg && (
+                <div
+                  className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
+                    passwordMsg.type === "success"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-red-50 text-red-700 border border-red-200"
+                  }`}>
+                  {passwordMsg.text}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
+                {passwordSaving ? "Updating..." : "Update Password"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
