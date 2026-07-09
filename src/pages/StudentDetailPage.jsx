@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { Skeleton } from "../components/Skeleton";
 import { FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { auditLog } from "../utils/security";
@@ -62,7 +62,37 @@ export default function StudentDetailPage({ uid, onBack }) {
     if (uid) fetchStudent();
   }, [uid, lecturerCourse]);
 
-  if (loading) return <LoadingSpinner text="Loading student details..." />;
+  if (loading) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
+        <Skeleton className="w-32 h-5 mb-4" />
+        <div className="bg-white border border-gray-200 p-6 rounded-xl">
+          <div className="flex items-start gap-4">
+            <Skeleton className="w-16 h-16" rounded={true} />
+            <div className="flex-1">
+              <Skeleton className="w-40 h-6 mb-2" />
+              <Skeleton className="w-60 h-4 mb-3" />
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="w-16 h-5" />
+                <Skeleton className="w-20 h-5" />
+                <Skeleton className="w-24 h-5" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Skeleton className="w-full h-24" />
+          <Skeleton className="w-full h-24" />
+          <Skeleton className="w-full h-24" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="w-full h-64" />
+          <Skeleton className="w-full h-64" />
+        </div>
+        <Skeleton className="w-full h-40" />
+      </div>
+    );
+  }
 
   if (accessDenied) {
     return (
@@ -77,7 +107,7 @@ export default function StudentDetailPage({ uid, onBack }) {
     );
   }
 
-  if (!data)
+  if (!data) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <button onClick={onBack} className="text-sm font-semibold text-[#111C4A] hover:underline mb-4 inline-flex items-center gap-1">
@@ -86,6 +116,7 @@ export default function StudentDetailPage({ uid, onBack }) {
         <p className="text-gray-500">Student not found.</p>
       </div>
     );
+  }
 
   const total = data.questionsAnswered || 0;
   const correct = data.questionsCorrect || 0;

@@ -3,12 +3,13 @@ import { AuthProvider } from "./context/AuthProvider";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import TopNav from "./components/TopNav";
-import LoadingSpinner from "./components/LoadingSpinner";
+import ProgressBar from "./components/ProgressBar";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
 const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 const QuestionsPage = lazy(() => import("./pages/QuestionsPage"));
+const InsightsPage = lazy(() => import("./pages/InsightsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 function parseHash() {
@@ -42,7 +43,7 @@ function AppContent() {
     window.location.hash = "students";
   }, []);
 
-  if (loading || isChecking) return <LoadingSpinner text="Verifying authentication status..." />;
+  if (loading || isChecking) return <ProgressBar isLoading={true} />;
   if (!user || !user.emailVerified) {
     // Clear hash on logout/unverified state to avoid stale routes
     if (!user && window.location.hash) window.location.hash = "";
@@ -53,18 +54,15 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen bg-[#F4F6FB]">
+      <ProgressBar isLoading={loading || isChecking} />
       <TopNav activePage={page === "student" ? "students" : page} onNavigate={navigate} />
       <main className="flex-1 overflow-y-auto">
-        <Suspense
-          fallback={
-            <div className="p-6">
-              <LoadingSpinner text="Loading page..." />
-            </div>
-          }>
+        <Suspense fallback={<div className="p-6">{null}</div>}>
           {page === "dashboard" && <DashboardPage onNavigate={navigate} />}
           {page === "students" && <StudentsPage onNavigate={navigate} />}
           {page === "student" && <StudentDetailPage uid={uid} onBack={goBack} />}
           {page === "questions" && <QuestionsPage />}
+          {page === "insights" && <InsightsPage />}
           {page === "settings" && <SettingsPage />}
         </Suspense>
       </main>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { QuestionSkeleton, Skeleton } from "../components/Skeleton";
 import { sanitizeObject, validateCourseAccess, auditLog } from "../utils/security";
 
 const COURSE_COLLECTION = {
@@ -314,7 +314,20 @@ export default function QuestionsPage() {
       )}
 
       {loading ? (
-        <LoadingSpinner text="Loading questions..." />
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="w-32 h-7 mb-1" />
+              <Skeleton className="w-48 h-4" />
+            </div>
+            <Skeleton className="w-32 h-10" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <QuestionSkeleton key={i} />
+            ))}
+          </div>
+        </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           {questions.length === 0 ? (

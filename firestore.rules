@@ -43,6 +43,22 @@ service cloud.firestore {
       allow read, write: if isLecturer();
     }
 
+    // Incorrect questions tracking collections: lecturers can read
+    match /computer_architecture_questions_gotten_incorrectly/{docId} {
+      allow read: if isLecturer();
+      allow write: if false;
+    }
+
+    match /computer_networking_questions_gotten_incorrectly/{docId} {
+      allow read: if isLecturer();
+      allow write: if false;
+    }
+
+    match /software_engineering_questions_gotten_incorrectly/{docId} {
+      allow read: if isLecturer();
+      allow write: if false;
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;

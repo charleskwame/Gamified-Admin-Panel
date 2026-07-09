@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import StatCard from "../components/StatCard";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { Skeleton, StatCardSkeleton, LeaderboardSkeleton, ChartSkeleton } from "../components/Skeleton";
 import { UsersIcon, DocumentTextIcon, StarIcon, FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
@@ -115,7 +115,27 @@ export default function DashboardPage({ onNavigate }) {
     fetchData();
   }, [course]);
 
-  if (loading) return <LoadingSpinner text="Loading dashboard..." />;
+  if (loading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div>
+          <Skeleton className="w-32 h-7 mb-1" />
+          <Skeleton className="w-48 h-4" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </div>
+        <LeaderboardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

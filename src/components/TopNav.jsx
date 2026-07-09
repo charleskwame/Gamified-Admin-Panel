@@ -1,10 +1,11 @@
-import { ChartBarIcon, UsersIcon, ClipboardDocumentListIcon, CogIcon } from "./Icons";
+import { ChartBarIcon, UsersIcon, ClipboardDocumentListIcon, LightBulbIcon, CogIcon } from "./Icons";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
   { label: "Dashboard", icon: ChartBarIcon, path: "dashboard" },
   { label: "Students", icon: UsersIcon, path: "students" },
   { label: "Questions", icon: ClipboardDocumentListIcon, path: "questions" },
+  { label: "Insights", icon: LightBulbIcon, path: "insights" },
 ];
 
 export default function TopNav({ activePage, onNavigate }) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { Skeleton, StudentRowSkeleton } from "../components/Skeleton";
 import { SearchIcon, FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { auditLog } from "../utils/security";
@@ -77,7 +77,30 @@ export default function StudentsPage({ onNavigate }) {
     </button>
   );
 
-  if (loading) return <LoadingSpinner text="Loading students..." />;
+  if (loading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <Skeleton className="w-24 h-7 mb-1" />
+            <Skeleton className="w-32 h-4" />
+          </div>
+          <Skeleton className="w-full sm:w-72 h-10" />
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-50">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <StudentRowSkeleton key={i} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
