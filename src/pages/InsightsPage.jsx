@@ -264,7 +264,7 @@ export default function InsightsPage() {
       {!loading && insights.length > 0 && (
         <button
           onClick={handleAIAnalysis}
-          className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-40 group"
+          className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 bg-black text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-40 group"
           title="Get AI Learning Insights">
           <RobotIcon className="w-7 h-7 group-hover:animate-pulse" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
@@ -276,10 +276,10 @@ export default function InsightsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-blue-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-100 flex items-center justify-center rounded-lg">
-                  <RobotIcon className="w-6 h-6 text-indigo-600" />
+                <div className="w-10 h-10 bg-black flex items-center justify-center rounded-lg">
+                  <RobotIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">AI Learning Insights</h2>
               </div>
@@ -295,7 +295,7 @@ export default function InsightsPage() {
               {aiLoading ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm text-gray-600">Analyzing student performance patterns...</p>
                   </div>
                   <div className="space-y-3">
@@ -359,7 +359,7 @@ export default function InsightsPage() {
                                 <p className="text-xs text-gray-500 mt-1">{pathway.description}</p>
                                 <div className="flex flex-wrap gap-1 mt-2">
                                   {pathway.topics?.map((t, j) => (
-                                    <span key={j} className="px-2 py-0.5 text-xs bg-indigo-50 text-indigo-700 rounded-full">
+                                    <span key={j} className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded-full">
                                       {t}
                                     </span>
                                   ))}
@@ -379,7 +379,7 @@ export default function InsightsPage() {
                       <h3 className="text-sm font-semibold text-gray-700 mb-3">Action Items</h3>
                       <div className="space-y-3">
                         {aiAnalysis.actionItems.map((item, i) => (
-                          <div key={i} className="border-l-4 border-indigo-500 bg-gray-50 p-4 rounded-r-lg">
+                          <div key={i} className="border-l-4 border-blue-500 bg-gray-50 p-4 rounded-r-lg">
                             <div className="flex items-start gap-3">
                               <span className="text-lg">{item.icon}</span>
                               <div className="flex-1">
@@ -407,7 +407,7 @@ export default function InsightsPage() {
                                   <ul className="mt-2 space-y-1">
                                     {item.recommendations.map((r, j) => (
                                       <li key={j} className="text-xs text-gray-600 flex items-start gap-1">
-                                        <span className="text-indigo-500">•</span>
+                                        <span className="text-blue-500">•</span>
                                         <span>{r}</span>
                                       </li>
                                     ))}
@@ -470,7 +470,7 @@ export default function InsightsPage() {
                           <div
                             key={i}
                             className={`border rounded-lg p-3 ${
-                              material.priority === "high" ? "border-indigo-200 bg-indigo-50/30" : "border-gray-200 bg-white"
+                              material.priority === "high" ? "border-blue-200 bg-blue-50/30" : "border-gray-200 bg-white"
                             }`}>
                             <div className="flex items-start gap-3">
                               <span className="text-base shrink-0 mt-0.5">{material.resourceType || "📄"}</span>
@@ -478,7 +478,7 @@ export default function InsightsPage() {
                                 <div className="flex items-center gap-2">
                                   <h4 className="text-sm font-bold text-gray-900 truncate">{material.title}</h4>
                                   {material.priority === "high" && (
-                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded shrink-0">
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded shrink-0">
                                       Recommended
                                     </span>
                                   )}
@@ -492,7 +492,7 @@ export default function InsightsPage() {
                                     href={material.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline">
+                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                       <path
                                         strokeLinecap="round"
@@ -556,7 +556,7 @@ ${aiAnalysis?.learningMaterials?.map((m) => `- ${m.resourceType}: ${m.title} (${
                   });
                 }}
                 disabled={!aiAnalysis || aiLoading}
-                className="px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50">
+                className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50">
                 Copy Insights
               </button>
             </div>

@@ -1,10 +1,10 @@
-export default function StatCard({ icon: Icon, label, value, sub, color = "indigo" }) {
+export default function StatCard({ icon: Icon, label, value, sub, color = "blue" }) {
   const colorMap = {
-    indigo: "from-indigo-500 to-indigo-600",
+    blue: "from-blue-500 to-blue-600",
     emerald: "from-emerald-500 to-emerald-600",
     amber: "from-amber-500 to-amber-600",
     rose: "from-rose-500 to-rose-600",
-    violet: "from-violet-500 to-violet-600",
+    indigo: "from-blue-600 to-blue-700",
     cyan: "from-cyan-500 to-cyan-600",
   };
 
@@ -17,7 +17,7 @@ export default function StatCard({ icon: Icon, label, value, sub, color = "indig
           {sub != null && <p className="text-xs text-gray-500">{sub}</p>}
         </div>
         <div
-          className={`w-11 h-11 bg-gradient-to-br ${colorMap[color] || colorMap.indigo} flex items-center justify-center text-white shrink-0 rounded-lg`}>
+          className={`w-11 h-11 bg-gradient-to-br ${colorMap[color] || colorMap.blue} flex items-center justify-center text-white shrink-0 rounded-lg`}>
           {Icon ? <Icon className="w-5 h-5" /> : null}
         </div>
       </div>

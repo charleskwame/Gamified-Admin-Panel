@@ -124,7 +124,7 @@ export default function StudentDetailPage({ uid, onBack }) {
   const accuracyPct = total > 0 ? ((correct / total) * 100).toFixed(1) : 0;
 
   const subjectStats = [
-    { name: "Architecture", pts: data.computerArchitecturePoints || 0, ans: data.caAnswered || 0, cor: data.caCorrect || 0, color: "#8C52FF" },
+    { name: "Architecture", pts: data.computerArchitecturePoints || 0, ans: data.caAnswered || 0, cor: data.caCorrect || 0, color: "#1E40AF" },
     { name: "Networking", pts: data.computerNetworkingPoints || 0, ans: data.cnAnswered || 0, cor: data.cnCorrect || 0, color: "#0091EA" },
     { name: "Software Eng", pts: data.softwareEngineeringPoints || 0, ans: data.seAnswered || 0, cor: data.seCorrect || 0, color: "#37474F" },
   ];

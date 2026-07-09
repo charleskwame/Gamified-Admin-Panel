@@ -12,7 +12,7 @@ const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-const PIE_COLORS = ["#111C4A", "#4F46E5", "#10B981", "#F59E0B", "#EF4444"];
+const PIE_COLORS = ["#111C4A", "#2563EB", "#10B981", "#F59E0B", "#EF4444"];
 
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function DashboardPage({ onNavigate }) {
       ptsField: "computerArchitecturePoints",
       ansField: "caAnswered",
       corField: "caCorrect",
-      color: "#8C52FF",
+      color: "#1E40AF",
       short: "CA",
     },
     computer_networking: {
@@ -145,7 +145,7 @@ export default function DashboardPage({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={UsersIcon} label="Total Students" value={stats?.totalStudents ?? 0} sub="Registered learners" color="indigo" />
+        <StatCard icon={UsersIcon} label="Total Students" value={stats?.totalStudents ?? 0} sub="Registered learners" color="blue" />
         <StatCard icon={DocumentTextIcon} label="Quizzes Taken" value={stats?.totalQuizzes ?? 0} sub="Across all subjects" color="emerald" />
         <StatCard icon={StarIcon} label="Avg Score" value={stats?.averageScore ?? 0} sub="Per student" color="amber" />
         <StatCard
