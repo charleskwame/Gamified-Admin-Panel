@@ -3,8 +3,9 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { Skeleton } from "../components/Skeleton";
-import { LightBulbIcon } from "../components/Icons";
-import { validateCourseAccess } from "../utils/security";
+import { LightBulbIcon, RobotIcon } from "../components/Icons";
+import { validateCourseAccess, auditLog } from "../utils/security";
+import { generateAIInsights } from "../utils/aiInsights";
 
 const COURSE_COLLECTION = {
   computer_architecture: "computer_architecture_questions",
@@ -37,6 +38,11 @@ export default function InsightsPage() {
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(insights.length / pageSize));
   const paginatedInsights = insights.slice((page - 1) * pageSize, page * pageSize);
+
+  // AI Modal state
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiAnalysis, setAIAnalysis] = useState(null);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -102,6 +108,28 @@ export default function InsightsPage() {
     fetchInsights();
     setPage(1);
   }, [course]);
+
+  const handleAIAnalysis = async () => {
+    setShowAIModal(true);
+    setAILoading(true);
+    setAIAnalysis(null);
+
+    try {
+      const analysis = await generateAIInsights(insights, course);
+      setAIAnalysis(analysis);
+
+      auditLog("ai_insights_generated", {
+        course: course,
+        totalInsights: insights.length,
+        analysisType: import.meta.env.VITE_DEEPSEEK_API_KEY ? "deepseek" : import.meta.env.VITE_OPENAI_API_KEY ? "openai" : "rule-based",
+      });
+    } catch (err) {
+      console.error("AI analysis error:", err);
+      setAIAnalysis({ error: "Failed to generate AI insights. Please try again." });
+    }
+
+    setAILoading(false);
+  };
 
   if (!course || !questionsCollection) {
     return (
@@ -230,6 +258,310 @@ export default function InsightsPage() {
             incorrectly.
           </div>
         </>
+      )}
+
+      {/* Floating AI Button */}
+      {!loading && insights.length > 0 && (
+        <button
+          onClick={handleAIAnalysis}
+          className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-40 group"
+          title="Get AI Learning Insights">
+          <RobotIcon className="w-7 h-7 group-hover:animate-pulse" />
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
+        </button>
+      )}
+
+      {/* AI Analysis Modal */}
+      {showAIModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-xl shadow-xl overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 flex items-center justify-center rounded-lg">
+                  <RobotIcon className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">AI Learning Insights</h2>
+              </div>
+              <button onClick={() => setShowAIModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {aiLoading ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-gray-600">Analyzing student performance patterns...</p>
+                  </div>
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="w-full h-20" />
+                    ))}
+                  </div>
+                </div>
+              ) : aiAnalysis?.error ? (
+                <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+                  <p className="text-sm font-medium text-red-700">{aiAnalysis.error}</p>
+                </div>
+              ) : aiAnalysis ? (
+                <div className="space-y-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-gray-900">{aiAnalysis.summary?.totalQuestions || 0}</p>
+                      <p className="text-xs text-gray-500">Total Questions</p>
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-red-600">{aiAnalysis.summary?.totalWrongAnswers || 0}</p>
+                      <p className="text-xs text-gray-500">Wrong Answers</p>
+                    </div>
+                    <div className="bg-amber-50 p-3 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-amber-600">{aiAnalysis.summary?.highPriorityCount || 0}</p>
+                      <p className="text-xs text-gray-500">High Priority</p>
+                    </div>
+                  </div>
+
+                  {/* Priority Topics */}
+                  {aiAnalysis.priorityTopics && aiAnalysis.priorityTopics.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Priority Topics</h3>
+                      <div className="space-y-2">
+                        {aiAnalysis.priorityTopics.map((topic, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium text-gray-800">{topic.topic}</span>
+                            <span className="px-2 py-1 text-xs font-bold bg-red-100 text-red-700 rounded-full">{topic.count} misses</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Learning Pathways */}
+                  {aiAnalysis.learningPathways && aiAnalysis.learningPathways.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Suggested Learning Pathways</h3>
+                      <div className="space-y-3">
+                        {aiAnalysis.learningPathways.map((pathway, i) => (
+                          <div key={i} className="border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`w-2 h-2 rounded-full mt-1.5 ${
+                                  pathway.priority === "high" ? "bg-red-500" : pathway.priority === "medium" ? "bg-amber-500" : "bg-emerald-500"
+                                }`}
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-bold text-gray-900">{pathway.title}</h4>
+                                <p className="text-xs text-gray-500 mt-1">{pathway.description}</p>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {pathway.topics?.map((t, j) => (
+                                    <span key={j} className="px-2 py-0.5 text-xs bg-indigo-50 text-indigo-700 rounded-full">
+                                      {t}
+                                    </span>
+                                  ))}
+                                </div>
+                                {pathway.recommendedFormat && <p className="text-xs text-gray-400 mt-2 italic">{pathway.recommendedFormat}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Items */}
+                  {aiAnalysis.actionItems && aiAnalysis.actionItems.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Action Items</h3>
+                      <div className="space-y-3">
+                        {aiAnalysis.actionItems.map((item, i) => (
+                          <div key={i} className="border-l-4 border-indigo-500 bg-gray-50 p-4 rounded-r-lg">
+                            <div className="flex items-start gap-3">
+                              <span className="text-lg">{item.icon}</span>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+                                <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                                {item.questions && (
+                                  <ul className="mt-2 space-y-1">
+                                    {item.questions.map((q, j) => (
+                                      <li key={j} className="text-xs text-gray-600 pl-3 border-l border-gray-300">
+                                        {q}...
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                                {item.topics && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {item.topics.map((t, j) => (
+                                      <span key={j} className="px-2 py-0.5 text-xs bg-white border border-gray-200 rounded-full">
+                                        {t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {item.recommendations && (
+                                  <ul className="mt-2 space-y-1">
+                                    {item.recommendations.map((r, j) => (
+                                      <li key={j} className="text-xs text-gray-600 flex items-start gap-1">
+                                        <span className="text-indigo-500">•</span>
+                                        <span>{r}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Student Study Plan */}
+                  {aiAnalysis.studentStudyGuide && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <span>📖</span> {aiAnalysis.studentStudyGuide.title || "Student Study Plan"}
+                      </h3>
+                      {aiAnalysis.studentStudyGuide.summary && <p className="text-xs text-gray-500 mb-3">{aiAnalysis.studentStudyGuide.summary}</p>}
+                      {aiAnalysis.studentStudyGuide.sections && aiAnalysis.studentStudyGuide.sections.length > 0 && (
+                        <div className="space-y-2">
+                          {aiAnalysis.studentStudyGuide.sections.map((section, i) => (
+                            <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-emerald-100 flex items-center justify-center rounded-full shrink-0 mt-0.5">
+                                  <span className="text-xs font-bold text-emerald-700">{i + 1}</span>
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-bold text-gray-900">{section.focusArea}</h4>
+                                  <p className="text-xs text-gray-500 mt-1">{section.whyImportant}</p>
+                                  {section.studyTips && section.studyTips.length > 0 && (
+                                    <ul className="mt-2 space-y-1">
+                                      {section.studyTips.map((tip, j) => (
+                                        <li key={j} className="text-xs text-gray-600 flex items-start gap-1.5">
+                                          <span className="text-emerald-500 mt-0.5">✓</span>
+                                          <span>{tip}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recommended Learning Materials */}
+                  {aiAnalysis.learningMaterials && aiAnalysis.learningMaterials.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <span>📚</span> Recommended Learning Materials
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-3">Share these resources with students to help them strengthen weak areas:</p>
+                      <div className="space-y-2">
+                        {aiAnalysis.learningMaterials.map((material, i) => (
+                          <div
+                            key={i}
+                            className={`border rounded-lg p-3 ${
+                              material.priority === "high" ? "border-indigo-200 bg-indigo-50/30" : "border-gray-200 bg-white"
+                            }`}>
+                            <div className="flex items-start gap-3">
+                              <span className="text-base shrink-0 mt-0.5">{material.resourceType || "📄"}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-bold text-gray-900 truncate">{material.title}</h4>
+                                  {material.priority === "high" && (
+                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700 rounded shrink-0">
+                                      Recommended
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {material.topic && <span className="font-medium text-gray-600">[{material.topic}] </span>}
+                                  {material.description}
+                                </p>
+                                {material.url && (
+                                  <a
+                                    href={material.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 mt-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                                      />
+                                    </svg>
+                                    Open resource
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Disclaimer */}
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-lg shrink-0 mt-0.5">⚠️</span>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-800">AI-Generated Content Notice</p>
+                        <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                          The learning resources, study plans, and recommendations above are generated by an AI assistant and may occasionally contain
+                          incorrect or outdated information. Please verify all resources and suggestions before sharing with students to ensure
+                          accuracy and appropriateness.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+              <button onClick={() => setShowAIModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  // Copy to clipboard functionality
+                  const text = `AI Insights - ${COURSE_LABEL[course]}
+
+Summary:
+Total Wrong Answers: ${aiAnalysis?.summary?.totalWrongAnswers}
+High Priority Topics: ${aiAnalysis?.priorityTopics?.map((t) => t.topic).join(", ")}
+
+For Lecturer:
+${aiAnalysis?.actionItems?.map((a) => `- ${a.title}: ${a.description}`).join("\n")}
+
+For Students - Study Plan:
+${aiAnalysis?.studentStudyGuide?.sections?.map((s) => `- ${s.focusArea}: ${s.whyImportant}`).join("\n") || "N/A"}
+
+Learning Materials:
+${aiAnalysis?.learningMaterials?.map((m) => `- ${m.resourceType}: ${m.title} (${m.description})`).join("\n") || "N/A"}`;
+                  navigator.clipboard.writeText(text).then(() => {
+                    alert("Insights copied to clipboard!");
+                  });
+                }}
+                disabled={!aiAnalysis || aiLoading}
+                className="px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50">
+                Copy Insights
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
