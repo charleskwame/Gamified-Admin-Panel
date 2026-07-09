@@ -148,11 +148,11 @@ export default function StudentDetailPage({ uid, onBack }) {
               <span className="px-2.5 py-0.5 bg-[#111C4A]/10 text-[#111C4A] text-xs font-semibold rounded-md">Student</span>
               {(data.streakNumber || 0) > 0 && (
                 <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 text-xs font-semibold inline-flex items-center gap-1 rounded-md">
-                  <FireIcon className="w-3.5 h-3.5" /> {data.streakNumber} day streak
+                  <FireIcon className="w-3.5 h-3.5" /> {data.streakNumber} quiz completions
                 </span>
               )}
               <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-md">
-                Joined {data.createdAt?.toDate?.()?.toLocaleDateString() || data.lastActiveDate || "N/A"}
+                Joined {data.createdAt?.toDate?.()?.toLocaleDateString() || "N/A"}
               </span>
             </div>
           </div>

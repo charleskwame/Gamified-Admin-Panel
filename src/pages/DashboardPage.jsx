@@ -8,10 +8,6 @@ import { useAuth } from "../context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { auditLog } from "../utils/security";
 
-const todayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
 const PIE_COLORS = ["#111C4A", "#2563EB", "#10B981", "#F59E0B", "#EF4444"];
 
 export default function DashboardPage({ onNavigate }) {
@@ -59,19 +55,16 @@ export default function DashboardPage({ onNavigate }) {
         const onlyStudents = users.filter((u) => u.role !== "lecturer");
         const total = onlyStudents.length;
         let totalScore = 0,
-          totalAnswered = 0,
-          activeToday = 0;
+          totalAnswered = 0;
         let courseTotal = 0,
           courseAnswered = 0,
           courseCorrect = 0;
-        const today = todayStr();
         const cfg = COURSE_CONFIG[course];
 
         for (const u of onlyStudents) {
           const s = u.score || 0;
           totalScore += s;
           totalAnswered += u.questionsAnswered || 0;
-          if ((u.lastActiveDate || "") === today) activeToday++;
           if (cfg) {
             courseTotal += u[cfg.ptsField] || 0;
             courseAnswered += u[cfg.ansField] || 0;
@@ -83,7 +76,6 @@ export default function DashboardPage({ onNavigate }) {
           totalStudents: total,
           totalQuizzes: Math.round(totalAnswered / 10),
           averageScore: total > 0 ? Math.round(totalScore / total) : 0,
-          activeToday,
           courseTotal,
           courseAnswered,
           courseCorrect,
@@ -144,17 +136,10 @@ export default function DashboardPage({ onNavigate }) {
         <p className="text-sm text-gray-500 mt-0.5">Overview of student activity and progress</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard icon={UsersIcon} label="Total Students" value={stats?.totalStudents ?? 0} sub="Registered learners" color="blue" />
         <StatCard icon={DocumentTextIcon} label="Quizzes Taken" value={stats?.totalQuizzes ?? 0} sub="Across all subjects" color="emerald" />
         <StatCard icon={StarIcon} label="Avg Score" value={stats?.averageScore ?? 0} sub="Per student" color="amber" />
-        <StatCard
-          icon={FireIcon}
-          label="Active Today"
-          value={stats?.activeToday ?? 0}
-          sub={stats ? `${((stats.activeToday / stats.totalStudents) * 100).toFixed(0)}% of students` : ""}
-          color="rose"
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -221,7 +206,6 @@ export default function DashboardPage({ onNavigate }) {
                 <th className="px-6 py-3">{COURSE_CONFIG[course]?.short || "Score"} Pts</th>
                 <th className="px-6 py-3">Streak</th>
                 <th className="px-6 py-3">Questions</th>
-                <th className="px-6 py-3">Last Active</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -250,12 +234,11 @@ export default function DashboardPage({ onNavigate }) {
                     )}
                   </td>
                   <td className="px-6 py-3 text-gray-600">{s.questionsAnswered || 0}</td>
-                  <td className="px-6 py-3 text-xs text-gray-400">{s.lastActiveDate || "Never"}</td>
                 </tr>
               ))}
               {students.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400 text-sm">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm">
                     No students found.
                   </td>
                 </tr>

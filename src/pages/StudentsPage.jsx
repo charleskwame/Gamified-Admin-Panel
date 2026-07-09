@@ -147,9 +147,6 @@ export default function StudentsPage({ onNavigate }) {
                 <th className="px-6 py-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">SE Pts</span>
                 </th>
-                <th className="px-6 py-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Last Active</span>
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -180,12 +177,11 @@ export default function StudentsPage({ onNavigate }) {
                   <td className="px-6 py-3.5 text-gray-600 font-medium">{s.computerArchitecturePoints || 0}</td>
                   <td className="px-6 py-3.5 text-gray-600 font-medium">{s.computerNetworkingPoints || 0}</td>
                   <td className="px-6 py-3.5 text-gray-600 font-medium">{s.softwareEngineeringPoints || 0}</td>
-                  <td className="px-6 py-3.5 text-xs text-gray-400">{s.lastActiveDate || "Never"}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
                     {search.trim() ? "No students match your search." : "No students registered yet."}
                   </td>
                 </tr>
