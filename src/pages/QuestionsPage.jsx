@@ -160,7 +160,6 @@ export default function QuestionsPage() {
     );
   }
 
-  // Validate course access for the page
   var courseAccess = validateCourseAccess(course, collectionName);
   if (!courseAccess.allowed) {
     return (
