@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { jsPDF } from "jspdf";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -130,6 +131,115 @@ export default function InsightsPage() {
 
     setAILoading(false);
   };
+
+  const handleSavePDF = useCallback(() => {
+    if (!aiAnalysis?.learningMaterials?.length) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Recommended Learning Materials", margin, y);
+    y += 10;
+
+    // Course name
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Course: ${COURSE_LABEL[course] || course}`, margin, y);
+    y += 8;
+
+    // Date
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, y);
+    y += 12;
+
+    doc.setTextColor(60);
+
+    // Materials
+    aiAnalysis.learningMaterials.forEach((material, i) => {
+      // Check if we need a new page
+      if (y > 260) {
+        doc.addPage();
+        y = margin;
+      }
+
+      // Resource type badge
+      if (material.resourceType) {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100);
+        doc.text(material.resourceType.toUpperCase(), margin, y);
+        y += 4;
+      }
+
+      // Title
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30);
+      const titleLines = doc.splitTextToSize(material.title, contentWidth);
+      doc.text(titleLines, margin, y);
+      y += titleLines.length * 6;
+
+      // Priority badge
+      if (material.priority === "high") {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 64, 175);
+        doc.text("[RECOMMENDED]", margin, y);
+        y += 5;
+      }
+
+      // Topic & Description
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80);
+      let desc = "";
+      if (material.topic) desc += `[${material.topic}] `;
+      desc += material.description || "";
+      const descLines = doc.splitTextToSize(desc, contentWidth);
+      doc.text(descLines, margin, y);
+      y += descLines.length * 5;
+
+      // URL
+      if (material.url) {
+        doc.setFontSize(8);
+        doc.setTextColor(37, 99, 235);
+        const urlLines = doc.splitTextToSize(material.url, contentWidth);
+        doc.text(urlLines, margin, y);
+        y += urlLines.length * 4 + 6;
+      } else {
+        y += 4;
+      }
+
+      // Separator line
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 4;
+    });
+
+    // Disclaimer
+    if (y > 250) {
+      doc.addPage();
+      y = margin;
+    }
+    y += 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(180);
+    doc.text(
+      "AI-Generated Content Notice: These resources are AI-generated and may occasionally contain incorrect or outdated information. Please verify before sharing.",
+      margin,
+      y,
+    );
+
+    doc.save(`${COURSE_LABEL[course] || course}_Learning_Materials.pdf`);
+  }, [aiAnalysis, course]);
 
   if (!course || !questionsCollection) {
     return (
@@ -331,6 +441,19 @@ export default function InsightsPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                         <span>📚</span> Recommended Learning Materials
+                        <button
+                          onClick={handleSavePDF}
+                          className="ml-auto px-2.5 py-1 text-[10px] font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center gap-1 transition-colors"
+                          title="Save learning materials as PDF">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                            />
+                          </svg>
+                          Save as PDF
+                        </button>
                       </h3>
                       <p className="text-xs text-gray-500 mb-3">Share these resources with students to help them strengthen weak areas:</p>
                       <div className="space-y-2">
@@ -470,26 +593,17 @@ export default function InsightsPage() {
                 Close
               </button>
               <button
-                onClick={() => {
-                  // Copy to clipboard functionality
-                  const text = `AI Insights - ${COURSE_LABEL[course]}
-
-Summary:
-Total Wrong Answers: ${aiAnalysis?.summary?.totalWrongAnswers}
-High Priority Topics: ${aiAnalysis?.priorityTopics?.map((t) => t.topic).join(", ")}
-
-For Lecturer:
-${aiAnalysis?.actionItems?.map((a) => `- ${a.title}: ${a.description}`).join("\n")}
-
-Learning Materials:
-${aiAnalysis?.learningMaterials?.map((m) => `- ${m.resourceType}: ${m.title} (${m.description})`).join("\n") || "N/A"}`;
-                  navigator.clipboard.writeText(text).then(() => {
-                    alert("Insights copied to clipboard!");
-                  });
-                }}
-                disabled={!aiAnalysis || aiLoading}
-                className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50">
-                Copy Insights
+                onClick={handleAIAnalysis}
+                disabled={aiLoading}
+                className="px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 flex items-center gap-1.5">
+                <svg className={`w-4 h-4 ${aiLoading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"
+                  />
+                </svg>
+                {aiLoading ? "Refreshing..." : "Refresh Insights"}
               </button>
             </div>
           </div>
