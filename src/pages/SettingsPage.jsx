@@ -22,7 +22,7 @@ export default function SettingsPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
 
   const inputClass =
-    "w-full px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] transition-colors rounded-lg";
+    "w-full px-3 py-2 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors rounded-lg";
 
   // -------- Username Handler --------
   const handleUsernameSubmit = async (e) => {
@@ -80,12 +80,12 @@ export default function SettingsPage() {
       setPasswordMsg({ type: "error", text: "New password must contain at least one number." });
       return;
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)) {
-      setPasswordMsg({ type: "error", text: "New password must contain at least one symbol (e.g. !@#$%)." });
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setPasswordMsg({ type: "error", text: "New passwords do not match." });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPasswordMsg({ type: "error", text: "New password must be different from current password." });
       return;
     }
 
@@ -94,146 +94,186 @@ export default function SettingsPage() {
       const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, newPassword);
-
+      setPasswordMsg({ type: "success", text: "Password updated successfully!" });
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setPasswordMsg({ type: "success", text: "Password updated successfully!" });
     } catch (err) {
-      const code = err.code || "";
-      let msg = "Failed to update password.";
-      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
-        msg = "Current password is incorrect.";
-      } else if (code === "auth/weak-password") {
-        msg = "New password is too weak. Use at least 8 characters with uppercase, number, and symbol.";
-      } else if (code === "auth/requires-recent-login") {
-        msg = "Please log out and log back in before changing your password.";
+      const code = err?.code || "";
+      if (code.includes("auth/wrong-password") || code.includes("auth/invalid-credential")) {
+        setPasswordMsg({ type: "error", text: "Current password is incorrect." });
+      } else if (code.includes("auth/weak-password")) {
+        setPasswordMsg({ type: "error", text: "New password is too weak." });
+      } else if (code.includes("auth/too-many-requests")) {
+        setPasswordMsg({ type: "error", text: "Too many attempts. Try again later." });
+      } else {
+        setPasswordMsg({ type: "error", text: "Failed to update password." });
       }
-      setPasswordMsg({ type: "error", text: msg });
     } finally {
       setPasswordSaving(false);
     }
   };
 
   return (
-    <>
-      <ProgressBar isLoading={usernameSaving || passwordSaving} />
-      <div className="p-6 max-w-3xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-gray-800 flex items-center gap-2">
-            <CogIcon className="w-6 h-6" />
-            Account Settings
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">Manage your account credentials</p>
-        </div>
+    <div className="p-6 max-w-3xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-extrabold text-text-primary">Settings</h1>
+        <p className="text-sm text-text-secondary mt-0.5">Manage your account preferences</p>
+      </div>
 
-        <div className="space-y-8">
-          {/* ---------- Change Username ---------- */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
-              <AcademicCapIcon className="w-5 h-5 text-[#111C4A]" />
-              <h2 className="text-base font-bold text-gray-800">Change Username</h2>
-            </div>
-            <form onSubmit={handleUsernameSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Email</label>
-                <input type="email" value={user?.email || ""} disabled className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter new username"
-                  className={inputClass}
-                  maxLength={50}
-                />
-              </div>
-
-              {usernameMsg && (
-                <div
-                  className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
-                    usernameMsg.type === "success"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}>
-                  {usernameMsg.text}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={usernameSaving}
-                className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-                {usernameSaving ? "Saving..." : "Update Username"}
-              </button>
-            </form>
+      {/* Username Section */}
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border-light">
+          <div className="w-9 h-9 bg-primary/10 flex items-center justify-center rounded-lg">
+            <AcademicCapIcon className="w-5 h-5 text-primary" />
           </div>
-
-          {/* ---------- Change Password ---------- */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
-              <ShieldCheckIcon className="w-5 h-5 text-[#111C4A]" />
-              <h2 className="text-base font-bold text-gray-800">Change Password</h2>
-            </div>
-            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Current Password</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className={inputClass}
-                  autoComplete="current-password"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min. 8 characters, uppercase, number, symbol)"
-                  className={inputClass}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-1.5">Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className={inputClass}
-                  autoComplete="new-password"
-                />
-              </div>
-
-              {passwordMsg && (
-                <div
-                  className={`px-4 py-2.5 text-sm font-medium rounded-lg ${
-                    passwordMsg.type === "success"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}>
-                  {passwordMsg.text}
-                </div>
+          <div>
+            <h2 className="text-base font-bold text-text-primary">Display Name</h2>
+            <p className="text-xs text-text-muted">Update how your name appears in the panel</p>
+          </div>
+        </div>
+        <form onSubmit={handleUsernameSubmit} className="px-6 py-5 space-y-4">
+          {usernameMsg && (
+            <div
+              className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                usernameMsg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"
+              }`}>
+              {usernameMsg.type === "success" ? (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               )}
+              {usernameMsg.text}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Display Name</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className={inputClass}
+              placeholder="Your display name"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={usernameSaving}
+              className="px-5 py-2 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
+              {usernameSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
+      </div>
 
-              <button
-                type="submit"
-                disabled={passwordSaving}
-                className="px-5 py-2 bg-[#111C4A] text-white text-sm font-semibold hover:bg-[#1a2a6e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg">
-                {passwordSaving ? "Updating..." : "Update Password"}
-              </button>
-            </form>
+      {/* Password Section */}
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border-light">
+          <div className="w-9 h-9 bg-primary/10 flex items-center justify-center rounded-lg">
+            <ShieldCheckIcon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-text-primary">Password</h2>
+            <p className="text-xs text-text-muted">Update your login password</p>
+          </div>
+        </div>
+        <form onSubmit={handlePasswordSubmit} className="px-6 py-5 space-y-4">
+          {passwordMsg && (
+            <div
+              className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                passwordMsg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"
+              }`}>
+              {passwordMsg.type === "success" ? (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+              {passwordMsg.text}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className={inputClass}
+              placeholder="Enter current password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={inputClass}
+              placeholder="Enter new password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputClass}
+              placeholder="Confirm new password"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={passwordSaving}
+              className="px-5 py-2 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
+              {passwordSaving ? "Updating..." : "Update Password"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Account Info Section (read-only) */}
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-border-light">
+          <div className="w-9 h-9 bg-primary/10 flex items-center justify-center rounded-lg">
+            <CogIcon className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-text-primary">Account</h2>
+            <p className="text-xs text-text-muted">Your account details</p>
+          </div>
+        </div>
+        <div className="px-6 py-5 space-y-3">
+          <div className="flex items-center justify-between py-2 border-b border-border-light">
+            <span className="text-sm text-text-secondary">Email</span>
+            <span className="text-sm font-semibold text-text-primary">{user?.email || "—"}</span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b border-border-light">
+            <span className="text-sm text-text-secondary">Course</span>
+            <span className="text-sm font-semibold text-text-primary">
+              {userData?.course === "computer_architecture" && "Computer Architecture"}
+              {userData?.course === "computer_networking" && "Computer Networking"}
+              {userData?.course === "software_engineering" && "Software Engineering"}
+              {!userData?.course && "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-text-secondary">Email Verified</span>
+            <span className={`text-sm font-semibold ${user?.emailVerified ? "text-emerald-600" : "text-red-500"}`}>
+              {user?.emailVerified ? "Yes" : "No"}
+            </span>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

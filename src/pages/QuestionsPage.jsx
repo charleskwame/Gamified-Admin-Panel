@@ -48,345 +48,399 @@ export default function QuestionsPage() {
       const snap = await getDocs(collection(db, collectionName));
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       all.sort((a, b) => {
-        const ta = a.createdAt?.toDate?.()?.getTime?.() ?? 0;
-        const tb = b.createdAt?.toDate?.()?.getTime?.() ?? 0;
-        return tb - ta;
+        const aDate = a.createdAt?.toMillis?.() || a.createdAt || 0;
+        const bDate = b.createdAt?.toMillis?.() || b.createdAt || 0;
+        return bDate - aDate;
       });
       setQuestions(all);
     } catch (err) {
+      console.error("Error fetching questions:", err);
       setError("Failed to load questions.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
   useEffect(() => {
     fetchQuestions();
-    setPage(1);
-  }, [course]);
+  }, [collectionName]);
 
-  const handleAdd = async (e) => {
+  const handleInputChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => {
+    setForm({
+      questionText: "",
+      optionA: "",
+      optionB: "",
+      optionC: "",
+      optionD: "",
+      correctAnswer: "",
+      explanation: "",
+    });
+    setError("");
+    setSuccess("");
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    // Validate course access before write
-    const accessCheck = validateCourseAccess(course, collectionName);
-    if (!accessCheck.allowed) {
-      setError(accessCheck.error);
-      return;
-    }
+    // Validation
+    const { questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation } = form;
+    if (!questionText.trim()) return setError("Question text is required.");
+    if (!optionA.trim()) return setError("Option A is required.");
+    if (!optionB.trim()) return setError("Option B is required.");
+    if (!optionC.trim()) return setError("Option C is required.");
+    if (!optionD.trim()) return setError("Option D is required.");
+    if (!correctAnswer) return setError("Please select the correct answer.");
+    if (!explanation.trim()) return setError("Explanation is required.");
 
-    if (!form.questionText.trim()) {
-      setError("Question text is required.");
-      return;
-    }
-    const opts = [form.optionA.trim(), form.optionB.trim(), form.optionC.trim(), form.optionD.trim()];
-    if (opts.some((o) => !o)) {
-      setError("All four options are required.");
-      return;
-    }
-    if (!form.correctAnswer.trim()) {
-      setError("Correct answer is required.");
-      return;
-    }
-    if (!opts.includes(form.correctAnswer.trim())) {
-      setError("Correct answer must match one option.");
-      return;
-    }
+    if (!collectionName) return setError("No course selected. Please set your course in settings.");
+
     setSaving(true);
     try {
-      // Sanitize input data before writing to Firestore
-      var sanitizedData = sanitizeObject({
-        questionText: form.questionText.trim(),
-        options: opts,
-        correctAnswer: form.correctAnswer.trim(),
-        explanation: form.explanation.trim(),
-        category: COURSE_LABEL[course],
-        addedBy: user.uid,
+      const payload = sanitizeObject({
+        questionText: questionText.trim(),
+        optionA: optionA.trim(),
+        optionB: optionB.trim(),
+        optionC: optionC.trim(),
+        optionD: optionD.trim(),
+        correctAnswer,
+        explanation: explanation.trim(),
+        createdBy: user?.uid || "unknown",
         createdAt: serverTimestamp(),
+        course,
       });
 
-      await addDoc(collection(db, collectionName), sanitizedData);
+      await addDoc(collection(db, collectionName), payload);
 
-      auditLog("question_added", {
-        userId: user.uid,
-        course: course,
-        collectionName: collectionName,
-      });
+      auditLog("question_added", { course, questionText: questionText.trim().slice(0, 50) });
 
-      setSuccess("Question added!");
-      setForm({ questionText: "", optionA: "", optionB: "", optionC: "", optionD: "", correctAnswer: "", explanation: "" });
+      setSuccess("Question added successfully!");
+      resetForm();
       setShowForm(false);
       fetchQuestions();
     } catch (err) {
-      setError("Failed to add.");
+      console.error("Error adding question:", err);
+      setError("Failed to add question. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  const handleDelete = async (qid) => {
-    // Validate course access before delete
-    const accessCheck = validateCourseAccess(course, collectionName);
-    if (!accessCheck.allowed) {
-      setError(accessCheck.error);
-      return;
-    }
-
+  const handleDelete = async (questionId) => {
+    if (!collectionName) return;
+    setSaving(true);
     setError("");
-    setSuccess("");
     try {
-      await deleteDoc(doc(db, collectionName, qid));
+      await deleteDoc(doc(db, collectionName, questionId));
 
-      auditLog("question_deleted", {
-        userId: user.uid,
-        questionId: qid,
-        course: course,
-        collectionName: collectionName,
-      });
+      auditLog("question_deleted", { course, questionId });
 
-      setSuccess("Question deleted.");
       setDeleteConfirm(null);
-      setQuestions((prev) => prev.filter((q) => q.id !== qid));
+      setSuccess("Question deleted successfully!");
+      fetchQuestions();
     } catch (err) {
-      setError("Failed to delete.");
+      console.error("Error deleting question:", err);
+      setError("Failed to delete question. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   if (!course || !collectionName) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
-        <p className="text-sm text-gray-500 mt-2">No course selected in your profile.</p>
-      </div>
-    );
-  }
-
-  var courseAccess = validateCourseAccess(course, collectionName);
-  if (!courseAccess.allowed) {
-    return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
-        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg mt-4">
-          <p className="text-sm font-medium text-red-700">{courseAccess.error}</p>
+        <div className="bg-surface border border-border p-12 rounded-xl text-center">
+          <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mx-auto mb-4 rounded-full">
+            <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-text-primary mb-1">No Course Selected</h2>
+          <p className="text-sm text-text-secondary">Please set your course in settings to manage questions.</p>
         </div>
       </div>
     );
   }
 
-  const paginationBar =
-    pageCount > 1 ? (
-      <div className="flex items-center justify-between px-6 py-3 text-sm">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="px-3 py-1 border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-default rounded-md">
-          Previous
-        </button>
-        <span className="text-xs text-gray-400">
-          Page {page} of {pageCount}
-        </span>
-        <button
-          onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-          disabled={page === pageCount}
-          className="px-3 py-1 border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-default rounded-md">
-          Next
-        </button>
-      </div>
-    ) : null;
+  const inputClass =
+    "w-full px-4 py-2.5 border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all rounded-lg";
+  const labelClass = "block text-sm font-semibold text-text-primary mb-1.5";
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Questions</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {COURSE_LABEL[course]} &bull; {questions.length} question{questions.length !== 1 ? "s" : ""}
-          </p>
+          <h1 className="text-2xl font-extrabold text-text-primary">Questions</h1>
+          <p className="text-sm text-text-secondary mt-0.5">Managing questions for {COURSE_LABEL[course] || course}</p>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setError("");
-            setSuccess("");
-          }}
-          className="px-4 py-2 bg-[#111C4A] text-white text-sm font-bold hover:bg-[#1a2a6e] whitespace-nowrap rounded-lg">
-          {showForm ? "Cancel" : "+ Add Question"}
-        </button>
+        {!showForm && (
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="px-4 py-2 bg-primary text-white font-semibold hover:bg-primary-dark transition-all text-sm rounded-lg shrink-0">
+            + Add Question
+          </button>
+        )}
       </div>
 
+      {/* Success / Error Messages */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 px-4 py-3 rounded-lg flex items-center gap-2">
+          <svg className="w-4 h-4 text-green-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <p className="text-sm font-medium text-green-700">{success}</p>
+        </div>
+      )}
       {error && (
-        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg flex items-center gap-2">
+          <svg className="w-4 h-4 text-red-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
           <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
       )}
-      {success && (
-        <div className="bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg">
-          <p className="text-sm font-medium text-emerald-700">{success}</p>
-        </div>
-      )}
 
+      {/* Add Question Form */}
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-white border border-gray-200 p-6 space-y-4 rounded-xl">
-          <h2 className="text-base font-bold text-gray-800">New Question</h2>
+        <form onSubmit={handleSubmit} className="bg-surface border border-border p-6 rounded-xl space-y-5">
+          <h2 className="text-base font-bold text-text-primary">New Question</h2>
+
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Question Text</label>
+            <label className={labelClass}>Question Text</label>
             <textarea
               value={form.questionText}
-              onChange={(e) => setForm({ ...form, questionText: e.target.value })}
-              rows={2}
+              onChange={(e) => handleInputChange("questionText", e.target.value)}
+              rows={3}
               placeholder="Enter the question..."
-              className="w-full px-3 py-2 border border-gray-300 text-sm outline-none rounded-lg"
+              className={`${inputClass} resize-none`}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {["A", "B", "C", "D"].map((l) => (
-              <div key={l}>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Option {l}</label>
-                <input
-                  value={form[`option${l}`]}
-                  onChange={(e) => setForm({ ...form, [`option${l}`]: e.target.value })}
-                  placeholder={`Option ${l}`}
-                  className="w-full px-3 py-2 border border-gray-300 text-sm outline-none rounded-lg"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Correct Answer</label>
+              <label className={labelClass}>Option A</label>
               <input
+                type="text"
+                value={form.optionA}
+                onChange={(e) => handleInputChange("optionA", e.target.value)}
+                placeholder="Option A"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Option B</label>
+              <input
+                type="text"
+                value={form.optionB}
+                onChange={(e) => handleInputChange("optionB", e.target.value)}
+                placeholder="Option B"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Option C</label>
+              <input
+                type="text"
+                value={form.optionC}
+                onChange={(e) => handleInputChange("optionC", e.target.value)}
+                placeholder="Option C"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Option D</label>
+              <input
+                type="text"
+                value={form.optionD}
+                onChange={(e) => handleInputChange("optionD", e.target.value)}
+                placeholder="Option D"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Correct Answer</label>
+              <select
                 value={form.correctAnswer}
-                onChange={(e) => setForm({ ...form, correctAnswer: e.target.value })}
-                placeholder="Must match one option"
-                className="w-full px-3 py-2 border border-gray-300 text-sm outline-none rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Explanation</label>
-              <input
-                value={form.explanation}
-                onChange={(e) => setForm({ ...form, explanation: e.target.value })}
-                placeholder="Why is this correct?"
-                className="w-full px-3 py-2 border border-gray-300 text-sm outline-none rounded-lg"
-              />
+                onChange={(e) => handleInputChange("correctAnswer", e.target.value)}
+                className={`${inputClass} bg-surface`}>
+                <option value="">Select correct answer</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-lg">
-              Cancel
-            </button>
+
+          <div>
+            <label className={labelClass}>Explanation</label>
+            <textarea
+              value={form.explanation}
+              onChange={(e) => handleInputChange("explanation", e.target.value)}
+              rows={2}
+              placeholder="Explain why this answer is correct..."
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-[#111C4A] text-white text-sm font-bold hover:bg-[#1a2a6e] disabled:opacity-50 rounded-lg">
+              className="px-5 py-2 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
               {saving ? "Saving..." : "Save Question"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+              className="px-5 py-2 border border-border text-sm font-semibold text-text-primary hover:bg-bg-base transition-all rounded-lg">
+              Cancel
             </button>
           </div>
         </form>
       )}
 
-      {/* Delete modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white p-6 w-full max-w-sm mx-4 border border-gray-200 rounded-xl">
-            <h3 className="text-base font-bold text-gray-900 mb-2">Delete Question?</h3>
-            <p className="text-sm text-gray-500 mb-1">This will permanently remove this question.</p>
-            <p className="text-xs text-gray-400 mb-5 line-clamp-2">{deleteConfirm.text}</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 rounded-lg">
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  handleDelete(deleteConfirm.id);
-                }}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-bold hover:bg-red-700 rounded-lg">
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Questions List */}
       {loading ? (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="w-32 h-7 mb-1" />
-              <Skeleton className="w-48 h-4" />
-            </div>
-            <Skeleton className="w-32 h-10" />
+        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-border-light">
+            <Skeleton className="w-32 h-5" />
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="divide-y divide-border-light">
+            {Array.from({ length: 4 }).map((_, i) => (
               <QuestionSkeleton key={i} />
             ))}
           </div>
         </div>
+      ) : questions.length === 0 ? (
+        <div className="bg-surface border border-border p-12 rounded-xl text-center">
+          <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mx-auto mb-4 rounded-full">
+            <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-text-primary mb-1">No Questions Yet</h2>
+          <p className="text-sm text-text-secondary">Add your first question to get started.</p>
+        </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          {questions.length === 0 ? (
-            <div className="px-6 py-12 text-center text-gray-400 text-sm">No questions in this course yet.</div>
-          ) : (
-            <>
-              {paginationBar}
-              <div className="divide-y divide-gray-100">
-                {paginatedQuestions.map((q) => (
-                  <div key={q.id} className="px-6 py-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-bold text-gray-900 leading-relaxed">{q.questionText}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {q.options?.map((opt, i) => (
-                            <span
-                              key={i}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium border ${
-                                opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 rounded-md"
-                                  : "bg-gray-50 text-gray-600 border-gray-200 rounded-md"
-                              }`}>
-                              {(opt === q.correctAnswer || opt.startsWith(q.correctAnswer + ")")) && (
-                                <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                              )}
-                              {opt}
-                            </span>
-                          ))}
-                        </div>
-                        {q.explanation && <p className="mt-2 text-sm text-gray-400 italic">{q.explanation}</p>}
-                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-400">
-                          {q.addedBy && <span>Added by lecturer</span>}
-                          {q.addedBy === user?.uid && <span className="text-[#111C4A] font-semibold">(you)</span>}
-                          {q.createdAt?.toDate && <span>{q.createdAt.toDate().toLocaleDateString()}</span>}
-                        </div>
-                      </div>
-                      <div className="shrink-0 pt-0.5">
-                        <button
-                          onClick={() => {
-                            setDeleteConfirm({ id: q.id, text: q.questionText });
-                          }}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Delete question">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
+            <h2 className="text-base font-bold text-text-primary">All Questions ({questions.length})</h2>
+          </div>
+          <div className="divide-y divide-border-light">
+            {paginatedQuestions.map((q, idx) => (
+              <div key={q.id} className="px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary mb-2">
+                      <span className="text-text-muted mr-1">{(page - 1) * pageSize + idx + 1}.</span>
+                      {q.questionText}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {["A", "B", "C", "D"].map((opt) => (
+                        <span
+                          key={opt}
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-md ${
+                            q.correctAnswer === opt
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-gray-50 text-text-secondary border border-border"
+                          }`}>
+                          {opt}: {q[`option${opt}`] || ""}
+                        </span>
+                      ))}
                     </div>
+                    {q.explanation && (
+                      <p className="text-xs text-text-muted mt-1">
+                        <span className="font-semibold text-text-secondary">Explanation:</span> {q.explanation}
+                      </p>
+                    )}
                   </div>
-                ))}
+                  <button
+                    onClick={() => setDeleteConfirm(deleteConfirm === q.id ? null : q.id)}
+                    className="shrink-0 p-1.5 text-text-muted hover:text-red-500 transition-colors rounded-md hover:bg-red-50"
+                    title="Delete question">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {deleteConfirm === q.id && (
+                  <div className="mt-3 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-xs font-medium text-red-700 flex-1">Delete this question? This action cannot be undone.</p>
+                    <button
+                      onClick={() => handleDelete(q.id)}
+                      disabled={saving}
+                      className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-all rounded-md">
+                      {saving ? "Deleting..." : "Delete"}
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(null)}
+                      className="px-3 py-1.5 border border-red-200 text-red-700 text-xs font-semibold hover:bg-red-50 transition-all rounded-md">
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
-              {paginationBar}
-            </>
+            ))}
+          </div>
+          {/* Pagination */}
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-border-light">
+              <p className="text-xs text-text-muted">
+                Page {page} of {pageCount}
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 text-xs font-semibold text-text-primary hover:bg-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all rounded-md">
+                  Previous
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-7 h-7 text-xs font-semibold rounded-md transition-all ${
+                      p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
+                    }`}>
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  disabled={page === pageCount}
+                  className="px-3 py-1 text-xs font-semibold text-text-primary hover:bg-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all rounded-md">
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}

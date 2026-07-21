@@ -23,7 +23,6 @@ export default function ProgressBar({ isLoading, text = "" }) {
       }, 16);
 
       // Hold at 90% until loading completes
-      // The final jump to 100% will happen on cleanup
     } else if (visible) {
       setProgress(100);
       timeout = setTimeout(() => {
@@ -40,8 +39,8 @@ export default function ProgressBar({ isLoading, text = "" }) {
   if (!visible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-100 overflow-hidden">
-      <div className="h-full bg-[#111C4A] transition-all duration-200 ease-out" style={{ width: `${progress}%` }} />
+    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-border-light overflow-hidden">
+      <div className="h-full bg-primary transition-all duration-200 ease-out" style={{ width: `${progress}%` }} />
     </div>
   );
 }

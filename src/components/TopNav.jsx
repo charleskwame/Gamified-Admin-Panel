@@ -12,11 +12,11 @@ export default function TopNav({ activePage, onNavigate }) {
   const { userData, logout } = useAuth();
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
+    <header className="bg-surface border-b border-border shadow-sm">
       <div className="flex items-center justify-between px-6 h-16">
         {/* Left: Logo + Brand */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 bg-[#111C4A] flex items-center justify-center rounded-lg">
+          <div className="w-9 h-9 bg-primary flex items-center justify-center rounded-lg">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
@@ -26,8 +26,8 @@ export default function TopNav({ activePage, onNavigate }) {
             </svg>
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-base font-extrabold text-gray-900 leading-tight">Admin Dashboard</h1>
-            <p className="text-[10px] text-gray-400 leading-tight">Lecturer Panel</p>
+            <h1 className="text-base font-extrabold text-primary leading-tight">Admin Dashboard</h1>
+            <p className="text-[10px] text-text-muted leading-tight">Lecturer Panel</p>
           </div>
         </div>
 
@@ -38,11 +38,11 @@ export default function TopNav({ activePage, onNavigate }) {
               key={item.path}
               onClick={() => onNavigate(item.path)}
               className={`flex items-center gap-2 px-4 h-full text-sm font-semibold transition-all relative ${
-                activePage === item.path ? "text-[#111C4A]" : "text-gray-400 hover:text-gray-600"
+                activePage === item.path ? "text-primary" : "text-text-muted hover:text-text-secondary"
               }`}>
               <item.icon className="w-4 h-4 shrink-0" />
               <span className="hidden md:inline">{item.label}</span>
-              {activePage === item.path && <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#111C4A] rounded-full" />}
+              {activePage === item.path && <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />}
             </button>
           ))}
         </nav>
@@ -50,14 +50,14 @@ export default function TopNav({ activePage, onNavigate }) {
         {/* Right: User Info + Settings + Logout */}
         <div className="flex items-center gap-2 shrink-0">
           {userData && (
-            <div className="hidden sm:flex items-center gap-2.5 mr-2 pr-2 border-r border-gray-200">
-              <div className="w-8 h-8 bg-[#111C4A]/10 flex items-center justify-center text-xs font-bold text-[#111C4A] rounded-lg">
+            <div className="hidden sm:flex items-center gap-2.5 mr-2 pr-2 border-r border-border">
+              <div className="w-8 h-8 bg-primary/10 flex items-center justify-center text-xs font-bold text-primary rounded-lg">
                 {(userData.displayName || "L").charAt(0).toUpperCase()}
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-gray-800 leading-tight truncate max-w-[100px]">{userData.displayName || "Lecturer"}</p>
+                <p className="text-sm font-semibold text-text-primary leading-tight truncate max-w-[100px]">{userData.displayName || "Lecturer"}</p>
                 {userData.course && (
-                  <span className="text-[10px] font-semibold text-gray-400 leading-tight">
+                  <span className="text-[10px] font-semibold text-text-muted leading-tight">
                     {userData.course === "computer_architecture" && "Computer Architecture"}
                     {userData.course === "computer_networking" && "Computer Networking"}
                     {userData.course === "software_engineering" && "Software Engineering"}
@@ -69,7 +69,7 @@ export default function TopNav({ activePage, onNavigate }) {
           <button
             onClick={() => onNavigate("settings")}
             className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all ${
-              activePage === "settings" ? "text-[#111C4A] bg-[#111C4A]/5" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+              activePage === "settings" ? "text-primary bg-primary/5" : "text-text-muted hover:text-text-secondary hover:bg-gray-50"
             }`}
             title="Settings">
             <CogIcon className="w-5 h-5" />

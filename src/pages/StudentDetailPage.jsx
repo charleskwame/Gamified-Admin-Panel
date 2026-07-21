@@ -47,221 +47,226 @@ export default function StudentDetailPage({ uid, onBack }) {
           }
 
           setData(studentData);
-
-          auditLog("student_detail_viewed", {
-            lecturerCourse: lecturerCourse,
-            targetUid: uid,
-          });
+        } else {
+          setAccessDenied(true);
         }
       } catch (err) {
-        console.error("Student fetch error:", err);
+        console.error("StudentDetail fetch error:", err);
+        setAccessDenied(true);
       } finally {
         setLoading(false);
       }
     };
-    if (uid) fetchStudent();
+    fetchStudent();
   }, [uid, lecturerCourse]);
 
   if (loading) {
     return (
       <div className="p-6 max-w-4xl mx-auto space-y-6">
-        <Skeleton className="w-32 h-5 mb-4" />
-        <div className="bg-white border border-gray-200 p-6 rounded-xl">
-          <div className="flex items-start gap-4">
-            <Skeleton className="w-16 h-16" rounded={true} />
-            <div className="flex-1">
-              <Skeleton className="w-40 h-6 mb-2" />
-              <Skeleton className="w-60 h-4 mb-3" />
-              <div className="flex flex-wrap gap-2">
-                <Skeleton className="w-16 h-5" />
-                <Skeleton className="w-20 h-5" />
-                <Skeleton className="w-24 h-5" />
-              </div>
-            </div>
+        <Skeleton className="w-24 h-5 mb-6" />
+        <div className="flex items-center gap-4 mb-6">
+          <Skeleton className="w-16 h-16 rounded-full" />
+          <div>
+            <Skeleton className="w-40 h-6 mb-1" />
+            <Skeleton className="w-56 h-4" />
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Skeleton className="w-full h-24" />
-          <Skeleton className="w-full h-24" />
-          <Skeleton className="w-full h-24" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-surface border border-border p-6 rounded-xl h-64">
+            <Skeleton className="w-32 h-5 mb-4" />
+            <Skeleton className="w-full h-52" />
+          </div>
+          <div className="bg-surface border border-border p-6 rounded-xl h-64">
+            <Skeleton className="w-32 h-5 mb-4" />
+            <Skeleton className="w-full h-52" />
+          </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="w-full h-64" />
-          <Skeleton className="w-full h-64" />
-        </div>
-        <Skeleton className="w-full h-40" />
       </div>
     );
   }
 
-  if (accessDenied) {
+  if (accessDenied || !data) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <button onClick={onBack} className="text-sm font-semibold text-[#111C4A] hover:underline mb-4 inline-flex items-center gap-1">
-          ← Back
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline mb-6">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to Students
         </button>
-        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
-          <p className="text-sm font-medium text-red-700">Access denied. You can only view students enrolled in your course.</p>
+        <div className="bg-surface border border-border p-12 rounded-xl text-center">
+          <div className="w-16 h-16 bg-red-100 flex items-center justify-center mx-auto mb-4 rounded-full">
+            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-text-primary mb-1">Access Denied</h2>
+          <p className="text-sm text-text-secondary">
+            {lecturerCourse ? "This student does not have any data in your course." : "Student not found."}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!data) {
-    return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <button onClick={onBack} className="text-sm font-semibold text-[#111C4A] hover:underline mb-4 inline-flex items-center gap-1">
-          ← Back
-        </button>
-        <p className="text-gray-500">Student not found.</p>
-      </div>
-    );
-  }
+  const {
+    displayName,
+    email,
+    score,
+    streakNumber,
+    questionsAnswered,
+    totalTime,
+    lastActiveDate,
+    computerArchitecturePoints,
+    computerNetworkingPoints,
+    softwareEngineeringPoints,
+    computerArchitectureCorrect,
+    computerNetworkingCorrect,
+    softwareEngineeringCorrect,
+  } = data;
 
-  const total = data.questionsAnswered || 0;
-  const correct = data.questionsCorrect || 0;
-  const incorrect = total - correct;
-  const accuracyPct = total > 0 ? ((correct / total) * 100).toFixed(1) : 0;
-
-  const subjectStats = [
-    { name: "Architecture", pts: data.computerArchitecturePoints || 0, ans: data.caAnswered || 0, cor: data.caCorrect || 0, color: "#1E40AF" },
-    { name: "Networking", pts: data.computerNetworkingPoints || 0, ans: data.cnAnswered || 0, cor: data.cnCorrect || 0, color: "#0091EA" },
-    { name: "Software Eng", pts: data.softwareEngineeringPoints || 0, ans: data.seAnswered || 0, cor: data.seCorrect || 0, color: "#37474F" },
+  // Prepare stats for cards
+  const statCards = [
+    { label: "Total Score", value: score || 0, color: "from-blue-500 to-blue-600" },
+    { label: "Streak", value: streakNumber || 0, color: "from-orange-500 to-orange-600" },
+    { label: "Answered", value: questionsAnswered || 0, color: "from-emerald-500 to-emerald-600" },
   ];
+
+  // Pie data for course breakdown
+  const coursePoints = [
+    { name: "Computer Architecture", value: computerArchitecturePoints || 0, color: "#1E40AF" },
+    { name: "Computer Networking", value: computerNetworkingPoints || 0, color: "#0091EA" },
+    { name: "Software Engineering", value: softwareEngineeringPoints || 0, color: "#37474F" },
+  ].filter((c) => c.value > 0);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <button onClick={onBack} className="text-sm font-semibold text-[#111C4A] hover:underline inline-flex items-center gap-1">
-        ← Back to Students
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back to Students
       </button>
 
-      {/* Profile Card */}
-      <div className="bg-white border border-gray-200 p-6 rounded-xl">
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 bg-[#111C4A] flex items-center justify-center text-2xl font-extrabold text-white shrink-0 rounded-xl">
-            {(data.displayName || "?").charAt(0).toUpperCase()}
+      {/* Student Info Header */}
+      <div className="bg-surface border border-border p-6 rounded-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-primary/10 flex items-center justify-center text-xl font-bold text-primary rounded-xl shrink-0">
+            {(displayName || "?").charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold text-gray-900">{data.displayName || "Unknown"}</h1>
-            <p className="text-sm text-gray-500">{data.email || "No email"}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-2.5 py-0.5 bg-[#111C4A]/10 text-[#111C4A] text-xs font-semibold rounded-md">Student</span>
-              {(data.streakNumber || 0) > 0 && (
-                <span className="px-2.5 py-0.5 bg-orange-50 text-orange-600 text-xs font-semibold inline-flex items-center gap-1 rounded-md">
-                  <FireIcon className="w-3.5 h-3.5" /> {data.streakNumber} quiz completions
-                </span>
-              )}
-              <span className="px-2.5 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-md">
-                Joined {data.createdAt?.toDate?.()?.toLocaleDateString() || "N/A"}
-              </span>
-            </div>
+          <div>
+            <h1 className="text-xl font-extrabold text-text-primary">{displayName || "Unknown"}</h1>
+            <p className="text-sm text-text-secondary">{email || "No email"}</p>
+            {lastActiveDate && (
+              <p className="text-xs text-text-muted mt-0.5">
+                Last active:{" "}
+                {new Date(lastActiveDate).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 p-5 text-center rounded-xl">
-          <p className="text-3xl font-extrabold text-gray-900">{data.score ?? 0}</p>
-          <p className="text-xs font-semibold text-gray-500 mt-1 uppercase">Total Score</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-5 text-center rounded-xl">
-          <p className="text-3xl font-extrabold text-gray-900">{total}</p>
-          <p className="text-xs font-semibold text-gray-500 mt-1 uppercase">Questions Answered</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-5 text-center rounded-xl">
-          <p className="text-3xl font-extrabold text-gray-900">{accuracyPct}%</p>
-          <p className="text-xs font-semibold text-gray-500 mt-1 uppercase">Accuracy</p>
-        </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-3 gap-4">
+        {statCards.map((card) => (
+          <div key={card.label} className="bg-surface border border-border p-4 rounded-xl">
+            <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{card.label}</p>
+            <p className="text-2xl font-extrabold text-text-primary mt-1">{card.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-200 p-6 rounded-xl">
-          <h2 className="text-base font-bold text-gray-800 mb-4">Accuracy Breakdown</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={[
-                  { name: "Correct", value: Math.max(correct, 0) },
-                  { name: "Incorrect", value: Math.max(incorrect, 0) },
-                ]}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={4}
-                dataKey="value">
-                <Cell fill="#10B981" />
-                <Cell fill="#EF4444" />
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #E5E7EB", fontSize: 13 }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-6 mt-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-500" />
-              <span className="text-xs text-gray-500">{correct} Correct</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500" />
-              <span className="text-xs text-gray-500">{incorrect} Incorrect</span>
+      {coursePoints.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-surface border border-border p-6 rounded-xl">
+            <h2 className="text-base font-bold text-text-primary mb-4">Points by Course</h2>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={coursePoints} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={40}>
+                  {coursePoints.map((e, i) => (
+                    <Cell key={i} fill={e.color} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }} formatter={(v) => [v, "Points"]} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-wrap justify-center gap-4 mt-2">
+              {coursePoints.map((e, i) => (
+                <div key={i} className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: e.color }} />
+                  {e.name}: {e.value}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-        <div className="bg-white border border-gray-200 p-6 rounded-xl">
-          <h2 className="text-base font-bold text-gray-800 mb-4">Points by Subject</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={subjectStats} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6B7280" }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #E5E7EB", fontSize: 13 }} />
-              <Bar dataKey="pts" barSize={40}>
-                {subjectStats.map((e, i) => (
-                  <Cell key={i} fill={e.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      {/* Subject Details */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-800">Subject Performance</h2>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {subjectStats.map((sub) => (
-            <div key={sub.name} className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3" style={{ backgroundColor: sub.color }} />
-                <span className="text-sm font-semibold text-gray-700">{sub.name}</span>
-              </div>
-              <div className="flex items-center gap-6 text-sm">
-                <span className="text-gray-500">{sub.ans} answered</span>
-                <span className="text-emerald-600 font-semibold">{sub.cor} correct</span>
-                <span className="text-red-500 font-semibold">{sub.ans - sub.cor} wrong</span>
-                <span className="text-gray-900 font-bold">{sub.pts} pts</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Badges */}
-      {data.badges && data.badges.length > 0 && (
-        <div className="bg-white border border-gray-200 p-6 rounded-xl">
-          <h2 className="text-base font-bold text-gray-800 mb-3">Unlocked Badges ({data.badges.length})</h2>
-          <div className="flex flex-wrap gap-2">
-            {data.badges.map((badge) => (
-              <span key={badge} className="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 rounded-md">
-                {badge.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-              </span>
-            ))}
+          <div className="bg-surface border border-border p-6 rounded-xl">
+            <h2 className="text-base font-bold text-text-primary mb-4">Correct Answers by Course</h2>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={coursePoints.map((c) => ({
+                  name: c.name,
+                  correct:
+                    c.name === "Computer Architecture"
+                      ? computerArchitectureCorrect || 0
+                      : c.name === "Computer Networking"
+                        ? computerNetworkingCorrect || 0
+                        : softwareEngineeringCorrect || 0,
+                  color: c.color,
+                }))}
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }} formatter={(v) => [v, "Correct"]} />
+                <Bar dataKey="correct" radius={[4, 4, 0, 0]} barSize={48}>
+                  {coursePoints.map((e, i) => (
+                    <Cell key={i} fill={e.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
+
+      {/* Additional Stats */}
+      <div className="bg-surface border border-border p-6 rounded-xl">
+        <h2 className="text-base font-bold text-text-primary mb-4">Activity Details</h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b border-border-light">
+            <span className="text-sm text-text-secondary">Total Time</span>
+            <span className="text-sm font-semibold text-text-primary">
+              {totalTime ? `${Math.floor(totalTime / 60)}h ${Math.round(totalTime % 60)}m` : "—"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-2 border-b border-border-light">
+            <span className="text-sm text-text-secondary">Questions Answered</span>
+            <span className="text-sm font-semibold text-text-primary">{questionsAnswered || 0}</span>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-text-secondary">Current Streak</span>
+            <span className="text-sm font-semibold text-text-primary flex items-center gap-1">
+              {streakNumber > 0 ? (
+                <>
+                  <FireIcon className="w-4 h-4 text-orange-500" /> {streakNumber} days
+                </>
+              ) : (
+                "—"
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

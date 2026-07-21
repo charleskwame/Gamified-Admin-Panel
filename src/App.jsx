@@ -45,7 +45,6 @@ function AppContent() {
 
   if (loading || isChecking) return <ProgressBar isLoading={true} />;
   if (!user || !user.emailVerified) {
-    // Clear hash on logout/unverified state to avoid stale routes
     if (!user && window.location.hash) window.location.hash = "";
     return <LoginPage />;
   }
@@ -53,7 +52,7 @@ function AppContent() {
   const { page, uid } = route;
 
   return (
-    <div className="flex flex-col h-screen bg-[#F4F6FB]">
+    <div className="flex flex-col h-screen bg-bg-base">
       <ProgressBar isLoading={loading || isChecking} />
       <TopNav activePage={page === "student" ? "students" : page} onNavigate={navigate} />
       <main className="flex-1 overflow-y-auto">

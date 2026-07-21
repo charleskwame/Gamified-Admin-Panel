@@ -9,12 +9,12 @@ export default function StatCard({ icon: Icon, label, value, sub, color = "blue"
   };
 
   return (
-    <div className="bg-white border border-gray-200 p-5 rounded-xl">
+    <div className="bg-surface border border-border p-5 rounded-xl">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-extrabold text-gray-900">{value ?? "—"}</p>
-          {sub != null && <p className="text-xs text-gray-500">{sub}</p>}
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{label}</p>
+          <p className="text-3xl font-extrabold text-text-primary">{value ?? "—"}</p>
+          {sub != null && <p className="text-xs text-text-secondary">{sub}</p>}
         </div>
         <div
           className={`w-11 h-11 bg-gradient-to-br ${colorMap[color] || colorMap.blue} flex items-center justify-center text-white shrink-0 rounded-lg`}>

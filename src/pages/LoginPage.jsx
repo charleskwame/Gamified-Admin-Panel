@@ -203,7 +203,7 @@ export default function LoginPage() {
   // Verification sent screen
   if (showVerification) {
     return (
-      <div className="min-h-screen bg-[#F4F6FB] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-emerald-100 flex items-center justify-center mx-auto mb-4 rounded-xl">
@@ -215,13 +215,13 @@ export default function LoginPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Verify Your Email</h1>
-            <p className="text-sm text-gray-500 mt-3 leading-relaxed">
-              We sent a verification email to <strong className="text-gray-800">{user?.email}</strong>. Click the link in the email to activate your
-              account, then check status below.
+            <h1 className="text-2xl font-extrabold text-text-primary">Verify Your Email</h1>
+            <p className="text-sm text-text-secondary mt-3 leading-relaxed">
+              We sent a verification email to <strong className="text-text-primary">{user?.email}</strong>. Click the link in the email to activate
+              your account, then check status below.
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-8 space-y-4 rounded-xl">
+          <div className="bg-surface border border-border p-8 space-y-4 rounded-xl">
             {error && (
               <div className="bg-red-50 border border-red-200 px-4 py-3">
                 <p className="text-sm font-medium text-red-700">{error}</p>
@@ -230,7 +230,7 @@ export default function LoginPage() {
             <button
               onClick={handleCheckVerification}
               disabled={loading}
-              className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm rounded-lg">
+              className="w-full py-2.5 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Checking...
@@ -242,7 +242,7 @@ export default function LoginPage() {
             <button
               onClick={handleResend}
               disabled={resending}
-              className="w-full py-2.5 border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all rounded-lg">
+              className="w-full py-2.5 border border-border text-sm font-semibold text-text-secondary hover:bg-gray-50 disabled:opacity-50 transition-all rounded-lg">
               {resending ? "Resending..." : "Resend verification email"}
             </button>
             <button
@@ -252,17 +252,17 @@ export default function LoginPage() {
               Back to Sign In / Cancel
             </button>
           </div>
-          <p className="text-center text-xs text-gray-400 mt-6">Can't find the email? Check your spam folder.</p>
+          <p className="text-center text-xs text-text-muted mt-6">Can't find the email? Check your spam folder.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F6FB] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#111C4A] flex items-center justify-center mx-auto mb-4 rounded-xl">
+          <div className="w-16 h-16 bg-primary flex items-center justify-center mx-auto mb-4 rounded-xl">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
@@ -271,11 +271,11 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900">Lecturer Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-1">{isSignUp ? "Create a lecturer account" : "Sign in to monitor student progress"}</p>
+          <h1 className="text-2xl font-extrabold text-text-primary">Lecturer Dashboard</h1>
+          <p className="text-sm text-text-muted mt-1">{isSignUp ? "Create a lecturer account" : "Sign in to monitor student progress"}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 p-8 space-y-5 rounded-xl" noValidate>
+        <form onSubmit={handleSubmit} className="bg-surface border border-border p-8 space-y-5 rounded-xl" noValidate>
           {error && (
             <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 rounded-lg">
               <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -287,20 +287,20 @@ export default function LoginPage() {
 
           {isSignUp && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Display Name</label>
+              <label className="block text-sm font-semibold text-text-primary mb-1.5">Display Name</label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Dr. Jane Smith"
                 autoFocus
-                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all rounded-lg"
+                className="w-full px-4 py-2.5 border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all rounded-lg"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Email</label>
             <input
               type="email"
               value={email}
@@ -308,8 +308,8 @@ export default function LoginPage() {
               onBlur={handleEmailBlur}
               placeholder="lecturer@example.com"
               autoFocus={!isSignUp}
-              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all rounded-lg ${
-                emailError ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all rounded-lg ${
+                emailError ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-border focus:border-primary"
               }`}
             />
             {emailError && (
@@ -323,20 +323,20 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Password</label>
             <input
               type="password"
               value={password}
               onChange={handlePasswordChange}
               onBlur={handlePasswordBlur}
               placeholder="Enter your password"
-              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-[#111C4A]/20 outline-none transition-all rounded-lg ${
-                passwordError && passwordTouched ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-[#111C4A]"
+              className={`w-full px-4 py-2.5 border text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all rounded-lg ${
+                passwordError && passwordTouched ? "border-red-400 focus:border-red-500 focus:ring-red-200" : "border-border focus:border-primary"
               }`}
             />
             {isSignUp && password.length > 0 && (
               <div className="mt-2 space-y-1">
-                <p className="text-xs font-semibold text-gray-500 mb-1.5">Password must have:</p>
+                <p className="text-xs font-semibold text-text-secondary mb-1.5">Password must have:</p>
                 <div className="flex items-center gap-1.5">
                   {passwordChecks.length ? (
                     <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -347,7 +347,7 @@ export default function LoginPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   )}
-                  <span className={`text-xs ${passwordChecks.length ? "text-emerald-600" : "text-gray-400"}`}>At least 8 characters</span>
+                  <span className={`text-xs ${passwordChecks.length ? "text-emerald-600" : "text-text-muted"}`}>At least 8 characters</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {passwordChecks.uppercase ? (
@@ -359,7 +359,7 @@ export default function LoginPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   )}
-                  <span className={`text-xs ${passwordChecks.uppercase ? "text-emerald-600" : "text-gray-400"}`}>One uppercase letter</span>
+                  <span className={`text-xs ${passwordChecks.uppercase ? "text-emerald-600" : "text-text-muted"}`}>One uppercase letter</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {passwordChecks.number ? (
@@ -371,7 +371,7 @@ export default function LoginPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   )}
-                  <span className={`text-xs ${passwordChecks.number ? "text-emerald-600" : "text-gray-400"}`}>One number</span>
+                  <span className={`text-xs ${passwordChecks.number ? "text-emerald-600" : "text-text-muted"}`}>One number</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {passwordChecks.symbol ? (
@@ -383,7 +383,7 @@ export default function LoginPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   )}
-                  <span className={`text-xs ${passwordChecks.symbol ? "text-emerald-600" : "text-gray-400"}`}>One symbol (e.g. !@#$%)</span>
+                  <span className={`text-xs ${passwordChecks.symbol ? "text-emerald-600" : "text-text-muted"}`}>One symbol (e.g. !@#$%)</span>
                 </div>
               </div>
             )}
@@ -391,11 +391,11 @@ export default function LoginPage() {
 
           {isSignUp && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Course You Teach</label>
+              <label className="block text-sm font-semibold text-text-primary mb-1.5">Course You Teach</label>
               <select
                 value={course}
                 onChange={(e) => setCourse(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 text-sm focus:ring-2 focus:ring-[#111C4A]/20 focus:border-[#111C4A] outline-none transition-all bg-white rounded-lg">
+                className="w-full px-4 py-2.5 border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-surface rounded-lg">
                 <option value="">Select a course...</option>
                 <option value="computer_architecture">Computer Architecture</option>
                 <option value="computer_networking">Computer Networking</option>
@@ -407,7 +407,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-[#111C4A] text-white font-bold hover:bg-[#1a2a6e] disabled:opacity-50 transition-all text-sm rounded-lg">
+            className="w-full py-2.5 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -421,13 +421,13 @@ export default function LoginPage() {
           </button>
 
           <div className="text-center pt-1">
-            <button type="button" onClick={toggleMode} className="text-sm font-medium text-[#111C4A] hover:underline">
+            <button type="button" onClick={toggleMode} className="text-sm font-medium text-primary hover:underline">
               {isSignUp ? "Already have an account? Sign In" : "Don\u2019t have an account? Register as Lecturer"}
             </button>
           </div>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-text-muted mt-6">
           {isSignUp ? "You will need to verify your email after registration." : "Only registered lecturers can access this panel."}
         </p>
       </div>
