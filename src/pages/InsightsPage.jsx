@@ -59,6 +59,14 @@ export default function InsightsPage() {
         const incorrectDocs = incorrectSnap.docs;
         const totalIncorrect = incorrectDocs.length;
 
+        // Build a map: questionId -> question text
+        const questionMap = {};
+        for (const doc of questionsSnap.docs) {
+          const data = doc.data();
+          const qId = data.id || doc.id;
+          questionMap[qId] = data.questionText || "Unknown Question";
+        }
+
         // Build a map: questionId -> count of students who got it wrong
         const incorrectMap = {};
         for (const doc of incorrectDocs) {
@@ -76,6 +84,7 @@ export default function InsightsPage() {
         const generated = sorted.map((item, index) => ({
           id: `${item.qId}-${index}`,
           questionId: item.qId,
+          questionText: questionMap[item.qId] || `Question ID: ${item.qId}`,
           studentCount: item.count,
           description: `${item.count} student${item.count > 1 ? "s" : ""} answered this question incorrectly.`,
           type: "high_incorrect",
@@ -232,7 +241,7 @@ export default function InsightsPage() {
                 </span>
                 <span className="text-xs text-text-muted">{insight.studentCount} students</span>
               </div>
-              <p className="text-sm font-medium text-text-primary mb-1 line-clamp-2">Question ID: {insight.questionId}</p>
+              <p className="text-sm font-medium text-text-primary mb-1 line-clamp-2">{insight.questionText}</p>
               <p className="text-xs text-text-secondary">{insight.description}</p>
             </div>
           ))}
@@ -248,16 +257,28 @@ export default function InsightsPage() {
             className="px-3 py-1.5 text-sm font-semibold text-text-primary hover:bg-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all rounded-lg">
             Previous
           </button>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-8 h-8 text-sm font-semibold rounded-lg transition-all ${
-                p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
-              }`}>
-              {p}
-            </button>
-          ))}
+          {Array.from({ length: pageCount }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === pageCount || (p >= page - 1 && p <= page + 1))
+            .reduce((acc, p, i, arr) => {
+              if (i > 0 && arr[i - 1] !== p - 1) {
+                acc.push(
+                  <span key={`ellipsis-${p}`} className="w-8 h-8 flex items-center justify-center text-sm text-text-muted">
+                    ...
+                  </span>
+                );
+              }
+              acc.push(
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-8 h-8 text-sm font-semibold rounded-lg transition-all ${
+                    p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
+                  }`}>
+                  {p}
+                </button>
+              );
+              return acc;
+            }, [])}
           <button
             onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
             disabled={page === pageCount}

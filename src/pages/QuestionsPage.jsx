@@ -423,16 +423,28 @@ export default function QuestionsPage() {
                   className="px-3 py-1 text-xs font-semibold text-text-primary hover:bg-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all rounded-md">
                   Previous
                 </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-7 h-7 text-xs font-semibold rounded-md transition-all ${
-                      p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
-                    }`}>
-                    {p}
-                  </button>
-                ))}
+                {Array.from({ length: pageCount }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === pageCount || (p >= page - 1 && p <= page + 1))
+                  .reduce((acc, p, i, arr) => {
+                    if (i > 0 && arr[i - 1] !== p - 1) {
+                      acc.push(
+                        <span key={`ellipsis-${p}`} className="w-7 h-7 flex items-center justify-center text-xs text-text-muted">
+                          ...
+                        </span>
+                      );
+                    }
+                    acc.push(
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`w-7 h-7 text-xs font-semibold rounded-md transition-all ${
+                          p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
+                        }`}>
+                        {p}
+                      </button>
+                    );
+                    return acc;
+                  }, [])}
                 <button
                   onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                   disabled={page === pageCount}
