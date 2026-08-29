@@ -95,6 +95,11 @@ export function AuthProvider({ children }) {
   // here so the flow remains testable without sending a real email.
   const [devOtp, setDevOtp] = useState(null);
 
+  // Ref to track if we are currently signing up, to avoid race conditions
+  // in onAuthStateChanged when the user is created but Firestore docs aren't yet.
+  const isSigningUpRef = useRef(false);
+  const signupEmailRef = useRef("");
+
   // Resolve a lecturer's profile. Newer builds store the profile in the
   // `lecturers` collection, older builds stored lecturers inside `users` with
   // role: "lecturer". This helper finds either one and best-effort migrates
@@ -141,6 +146,13 @@ export function AuthProvider({ children }) {
   //  - otherwise (no profile)      -> access denied (must complete sign-up)
   const ensureLecturerProfile = useCallback(
     async (firebaseUser) => {
+      if (isSigningUpRef.current) {
+        return {
+          needsVerification: true,
+          pendingEmail: signupEmailRef.current || firebaseUser.email || "",
+        };
+      }
+
       const resolved = await resolveLecturer(firebaseUser.uid);
       if (resolved) {
         if (resolved.data.role !== "lecturer") {
@@ -156,18 +168,9 @@ export function AuthProvider({ children }) {
 
       // No lecturer profile yet. If a sign-up verification is still pending
       // (OTP not yet entered), route the user back to the OTP screen.
-      // Note: createUserWithEmailAndPassword triggers onAuthStateChanged before
-      // signUpLecturer finishes writing the verification doc, so we retry a few times.
       try {
         const verifDocRef = doc(db, "lecturer_verifications", firebaseUser.uid);
-        let verifSnap = await getDoc(verifDocRef);
-        let retries = 5;
-        while (!verifSnap.exists() && retries > 0) {
-          await new Promise((r) => setTimeout(r, 500));
-          verifSnap = await getDoc(verifDocRef);
-          retries--;
-        }
-
+        const verifSnap = await getDoc(verifDocRef);
         if (verifSnap.exists()) {
           return {
             needsVerification: true,
@@ -275,7 +278,17 @@ export function AuthProvider({ children }) {
       }
 
       setAccessMessage(null);
-      const cred = await createUserWithEmailAndPassword(auth, mail, password);
+      
+      isSigningUpRef.current = true;
+      signupEmailRef.current = mail;
+      let cred;
+      try {
+        cred = await createUserWithEmailAndPassword(auth, mail, password);
+      } catch (err) {
+        isSigningUpRef.current = false;
+        throw new Error(friendlyError(err), { cause: err });
+      }
+      
       const uid = cred.user.uid;
 
       try {
@@ -322,6 +335,8 @@ export function AuthProvider({ children }) {
           console.warn("Auth user cleanup failed:", cleanupErr);
         }
         throw new Error(friendlyError(err), { cause: err });
+      } finally {
+        isSigningUpRef.current = false;
       }
     },
     [findCourseCode]
