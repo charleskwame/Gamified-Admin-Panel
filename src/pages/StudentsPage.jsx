@@ -6,6 +6,40 @@ import { SearchIcon, FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { auditLog } from "../utils/security";
 
+const COURSE_CONFIG = {
+  computer_architecture: {
+    ptsField: "computerArchitecturePoints",
+    ansField: "caAnswered",
+    corField: "caCorrect",
+    label: "CA",
+    full: "Computer Architecture",
+  },
+  computer_networking: {
+    ptsField: "computerNetworkingPoints",
+    ansField: "cnAnswered",
+    corField: "cnCorrect",
+    label: "CN",
+    full: "Computer Networking",
+  },
+  software_engineering: {
+    ptsField: "softwareEngineeringPoints",
+    ansField: "seAnswered",
+    corField: "seCorrect",
+    label: "SE",
+    full: "Software Engineering",
+  },
+};
+
+// A student belongs to a course when they have any engagement with that
+// course content (points earned, questions answered, or correct answers).
+function hasCourseData(student, cfg) {
+  return (
+    (student[cfg.ptsField] || 0) > 0 ||
+    (student[cfg.ansField] || 0) > 0 ||
+    (student[cfg.corField] || 0) > 0
+  );
+}
+
 export default function StudentsPage({ onNavigate }) {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
@@ -14,21 +48,7 @@ export default function StudentsPage({ onNavigate }) {
   const [error, setError] = useState("");
   const { userData } = useAuth();
   const course = userData?.course || null;
-
-  const COURSE_CONFIG = {
-    computer_architecture: {
-      ptsField: "computerArchitecturePoints",
-      label: "CA",
-    },
-    computer_networking: {
-      ptsField: "computerNetworkingPoints",
-      label: "CN",
-    },
-    software_engineering: {
-      ptsField: "softwareEngineeringPoints",
-      label: "SE",
-    },
-  };
+  const cfg = COURSE_CONFIG[course];
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -36,9 +56,9 @@ export default function StudentsPage({ onNavigate }) {
         const snap = await getDocs(collection(db, "users"));
         const all = snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((u) => u.role !== "lecturer");
 
-        // If lecturer has a course, filter students to only those with data in that course
-        const cfg = COURSE_CONFIG[course];
-        const filtered = cfg ? all.filter((u) => (u[cfg.ptsField] || 0) > 0 || (u.questionsAnswered || 0) > 0) : all;
+        // Show only students with data in the lecturer's own course when a
+        // course is assigned. With no course, fall back to all students.
+        const filtered = cfg ? all.filter((u) => hasCourseData(u, cfg)) : all;
 
         setStudents(filtered);
 
@@ -58,9 +78,10 @@ export default function StudentsPage({ onNavigate }) {
       }
     };
     fetchAll();
-  }, [course]);
+  }, [course, cfg]);
 
-  const ptsField = course ? COURSE_CONFIG[course]?.ptsField : "score";
+  const ptsField = course ? cfg?.ptsField : "score";
+  const ansField = course ? cfg?.ansField : "questionsAnswered";
   const otherSortKeys = ["streakNumber", "questionsAnswered", "totalTime", "lastActiveDate"];
 
   const filtered = students.filter((s) => {
@@ -71,7 +92,11 @@ export default function StudentsPage({ onNavigate }) {
   const sorted = [...filtered].sort((a, b) => {
     if (sortKey === "score") return (b[ptsField] || 0) - (a[ptsField] || 0);
     if (sortKey === "streakNumber") return (b.streakNumber || 0) - (a.streakNumber || 0);
-    if (sortKey === "questionsAnswered") return (b.questionsAnswered || 0) - (a.questionsAnswered || 0);
+    if (sortKey === "questionsAnswered") {
+      const aAns = course ? a[cfg?.ansField] || 0 : a.questionsAnswered || 0;
+      const bAns = course ? b[cfg?.ansField] || 0 : b.questionsAnswered || 0;
+      return bAns - aAns;
+    }
     if (sortKey === "lastActiveDate") {
       const aDate = a.lastActiveDate ? new Date(a.lastActiveDate) : new Date(0);
       const bDate = b.lastActiveDate ? new Date(b.lastActiveDate) : new Date(0);
@@ -82,7 +107,7 @@ export default function StudentsPage({ onNavigate }) {
 
   const getSortLabel = (key) => {
     const labels = {
-      score: course ? `${COURSE_CONFIG[course]?.label || "Score"} Pts` : "Score Pts",
+      score: course ? `Score` : "Score Pts",
       streakNumber: "Streak",
       questionsAnswered: "Answered",
       lastActiveDate: "Last Active",
@@ -98,7 +123,7 @@ export default function StudentsPage({ onNavigate }) {
       s.email || "",
       s[ptsField] || 0,
       s.streakNumber || 0,
-      s.questionsAnswered || 0,
+      s[ansField] || 0,
       s.lastActiveDate || "",
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v}"`).join(","))].join("\n");
@@ -141,7 +166,7 @@ export default function StudentsPage({ onNavigate }) {
         <div>
           <h1 className="text-2xl font-extrabold text-text-primary">Students</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            {course ? `Viewing students in your ${COURSE_CONFIG[course]?.label || ""} course` : "Viewing all students"}
+            {course ? `Viewing students in your ${cfg?.full || ""} course` : "Viewing all students"}
           </p>
         </div>
         <button
@@ -175,7 +200,7 @@ export default function StudentsPage({ onNavigate }) {
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value)}
           className="w-full sm:w-72 px-4 py-2.5 border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-surface rounded-lg">
-          <option value="score">{course ? `${COURSE_CONFIG[course]?.label || "Score"} Pts` : "Score Pts"}</option>
+          <option value="score">{course ? `${cfg?.label || "Score"} Pts` : "Score Pts"}</option>
           {otherSortKeys.map((key) => (
             <option key={key} value={key}>
               {getSortLabel(key)}
@@ -190,7 +215,7 @@ export default function StudentsPage({ onNavigate }) {
             <thead>
               <tr className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-light">
                 <th className="px-6 py-3">Student</th>
-                <th className="px-6 py-3">{getSortLabel("score")}</th>
+                <th className="px-6 py-3">{course ? `${cfg?.label || "Score"} Pts` : "Score Pts"}</th>
                 <th className="px-6 py-3">Streak</th>
                 <th className="px-6 py-3">Answered</th>
                 <th className="px-6 py-3">Total Time</th>
@@ -221,7 +246,7 @@ export default function StudentsPage({ onNavigate }) {
                       <span className="text-text-muted">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-3.5 text-text-secondary">{s.questionsAnswered || 0}</td>
+                  <td className="px-6 py-3.5 text-text-secondary">{s[ansField] || 0}</td>
                   <td className="px-6 py-3.5 text-text-secondary">
                     {s.totalTime ? `${Math.floor(s.totalTime / 60)}h ${Math.round(s.totalTime % 60)}m` : "—"}
                   </td>
