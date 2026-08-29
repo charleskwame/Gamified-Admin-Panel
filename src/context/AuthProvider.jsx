@@ -79,7 +79,20 @@ function friendlyError(err) {
   if (err?.message) {
     return err.message.replace("Firebase: ", "").replace("FirebaseError: ", "").split("(")[0].trim();
   }
-  return "An unexpected error occurred. Please try again.";
+  
+  if (err && err.text) {
+    return `Email service error: ${err.text}`;
+  }
+  
+  if (err && typeof err === 'object') {
+    try {
+      return `Unexpected error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`;
+    } catch (e) {
+      return "An unexpected error occurred. Please try again.";
+    }
+  }
+
+  return `An unexpected error occurred: ${String(err)}`;
 }
 
 export function AuthProvider({ children }) {
