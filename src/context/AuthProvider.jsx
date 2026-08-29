@@ -156,8 +156,18 @@ export function AuthProvider({ children }) {
 
       // No lecturer profile yet. If a sign-up verification is still pending
       // (OTP not yet entered), route the user back to the OTP screen.
+      // Note: createUserWithEmailAndPassword triggers onAuthStateChanged before
+      // signUpLecturer finishes writing the verification doc, so we retry a few times.
       try {
-        const verifSnap = await getDoc(doc(db, "lecturer_verifications", firebaseUser.uid));
+        const verifDocRef = doc(db, "lecturer_verifications", firebaseUser.uid);
+        let verifSnap = await getDoc(verifDocRef);
+        let retries = 5;
+        while (!verifSnap.exists() && retries > 0) {
+          await new Promise((r) => setTimeout(r, 500));
+          verifSnap = await getDoc(verifDocRef);
+          retries--;
+        }
+
         if (verifSnap.exists()) {
           return {
             needsVerification: true,
