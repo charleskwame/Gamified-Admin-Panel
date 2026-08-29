@@ -79,9 +79,7 @@ service cloud.firestore {
     match /course_codes/{codeId} {
       allow read: if true;
       allow update: if signedIn()
-        && request.resource.data.keys().hasOnly([
-          'code', 'course', 'claimedBy', 'claimedAt'
-        ])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedBy', 'claimedAt'])
         && request.resource.data.code == resource.data.code
         && request.resource.data.course == resource.data.course;
       allow create, delete: if false;

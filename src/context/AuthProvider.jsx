@@ -334,7 +334,9 @@ export function AuthProvider({ children }) {
         } catch (cleanupErr) {
           console.warn("Auth user cleanup failed:", cleanupErr);
         }
-        throw new Error(friendlyError(err), { cause: err });
+        const friendly = friendlyError(err);
+        setAccessMessage(friendly);
+        throw new Error(friendly, { cause: err });
       } finally {
         isSigningUpRef.current = false;
       }
