@@ -27,5 +27,5 @@ export async function sendOtpEmail({ toEmail, toName, otpCode }) {
     to_email: toEmail,
     to_name: toName || toEmail.split("@")[0] || "Lecturer",
     otp_code: otpCode,
-  });
+  }, PUBLIC_KEY);
 }
