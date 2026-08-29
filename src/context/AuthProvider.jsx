@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
 } from "firebase/auth";
 import {
@@ -444,22 +442,6 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  /**
-   * Legacy Google sign-in. Only resolves existing lecturer profiles — it no
-   * longer auto-provisions new accounts, so it is safe to keep for lecturers
-   * who signed up before the course-code flow existed.
-   */
-  const signInWithGoogle = useCallback(async () => {
-    setAccessMessage(null);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      throw new Error(friendlyError(err), { cause: err });
-    }
-  }, []);
-
   const logout = useCallback(async () => {
     setAccessMessage(null);
     setNeedsVerification(false);
@@ -482,7 +464,6 @@ export function AuthProvider({ children }) {
         devOtp,
         signUpLecturer,
         signInWithEmail,
-        signInWithGoogle,
         verifyOtp,
         resendOtp,
         logout,
