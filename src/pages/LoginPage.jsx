@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { EMAILJS_CONFIGURED } from "../utils/email";
 
 function GoogleIcon({ className = "w-5 h-5" }) {
   return (
@@ -61,14 +60,9 @@ const inputClass =
 export default function LoginPage() {
   const {
     accessMessage,
-    needsVerification,
-    pendingEmail,
-    devOtp,
     signUpLecturer,
     signInWithEmail,
     signInWithGoogle,
-    verifyOtp,
-    resendOtp,
   } = useAuth();
 
   const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup"
@@ -83,24 +77,6 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [courseCode, setCourseCode] = useState("");
-
-  // OTP fields
-  const [otp, setOtp] = useState("");
-  const [resendIn, setResendIn] = useState(0);
-
-  useEffect(() => {
-    if (needsVerification) {
-      setError("");
-      setOtp("");
-      setResendIn(30);
-    }
-  }, [needsVerification]);
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendIn]);
 
   const displayError = accessMessage || error;
 
@@ -139,37 +115,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (!/^\d{6}$/.test(otp)) {
-      setError("Please enter the 6-digit code.");
-      return;
-    }
-    setBusy(true);
-    try {
-      await verifyOtp(otp);
-    } catch (err) {
-      setError(err?.message || "Unable to verify the code. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setError("");
-    setBusy(true);
-    try {
-      await resendOtp();
-      setOtp("");
-      setResendIn(30);
-    } catch (err) {
-      setError(err?.message || "Unable to resend the code. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     setError("");
     setBusy(true);
@@ -181,91 +126,6 @@ export default function LoginPage() {
       setBusy(false);
     }
   };
-
-  // ---------------------------------------------------------------------------
-  // OTP verification step (shown after a lecturer signs up / while in-flight)
-  // ---------------------------------------------------------------------------
-  if (needsVerification) {
-    return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <BrandHeader />
-          <div className="bg-surface border border-border p-8 space-y-5 rounded-xl">
-            {displayError && <ErrorBanner message={displayError} />}
-
-            {devOtp && !EMAILJS_CONFIGURED && (
-              <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-lg text-sm text-amber-800">
-                <p className="font-semibold">Development mode</p>
-                <p className="mt-1">
-                  EmailJS is not configured, so the code is shown here instead of being emailed.
-                  Your code is <strong className="font-mono tracking-widest">{devOtp}</strong>.
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 bg-primary/10 flex items-center justify-center rounded-lg shrink-0">
-                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-text-primary">Verify your email</h2>
-                <p className="text-xs text-text-muted leading-relaxed mt-0.5">
-                  We emailed a 6-digit code to{" "}
-                  <strong className="text-text-secondary">{pendingEmail || "your email"}</strong>.
-                  Enter it below to activate your lecturer account.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Verification code
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="••••••"
-                  className={`${inputClass} text-center text-xl font-bold tracking-[0.5em]`}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full bg-primary text-white text-sm font-bold py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                {busy ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Verifying...
-                  </span>
-                ) : (
-                  "Verify & access dashboard"
-                )}
-              </button>
-            </form>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={busy || resendIn > 0}
-                className="text-sm font-semibold text-primary disabled:opacity-50 disabled:cursor-not-allowed">
-                {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ---------------------------------------------------------------------------
   // Sign in / Sign up

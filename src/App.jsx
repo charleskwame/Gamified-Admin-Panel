@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { AuthProvider } from "./context/AuthProvider";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
+import OtpVerificationPage from "./pages/OtpVerificationPage";
 import TopNav from "./components/TopNav";
 import ProgressBar from "./components/ProgressBar";
 
@@ -50,7 +51,8 @@ function AppContent() {
   }, []);
 
   if (loading) return <ProgressBar isLoading={true} />;
-  if (needsVerification || !user || !userData) {
+  if (needsVerification) return <OtpVerificationPage />;
+  if (!user || !userData) {
     return <LoginPage />;
   }
 
