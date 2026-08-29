@@ -21,7 +21,7 @@ function parseHash() {
 }
 
 function AppContent() {
-  const { user, loading, isChecking } = useAuth();
+  const { user, userData, loading, needsVerification } = useAuth();
 
   const [route, setRoute] = useState(() => parseHash());
 
@@ -31,10 +31,11 @@ function AppContent() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  // When signed out, clear any deep link so the next sign-in lands on the dashboard.
+  // When signed out (or waiting on email verification) clear any deep link so
+  // the next sign-in lands on the dashboard.
   useEffect(() => {
-    if (!user && window.location.hash) window.location.hash = "";
-  }, [user]);
+    if ((!user || needsVerification) && window.location.hash) window.location.hash = "";
+  }, [user, needsVerification]);
 
   const navigate = useCallback((target, uid) => {
     if (target === "student" && uid) {
@@ -48,8 +49,8 @@ function AppContent() {
     window.location.hash = "students";
   }, []);
 
-  if (loading || isChecking) return <ProgressBar isLoading={true} />;
-  if (!user) {
+  if (loading) return <ProgressBar isLoading={true} />;
+  if (needsVerification || !user || !userData) {
     return <LoginPage />;
   }
 
@@ -57,7 +58,7 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen bg-bg-base">
-      <ProgressBar isLoading={loading || isChecking} />
+      <ProgressBar isLoading={loading} />
       <TopNav activePage={page === "student" ? "students" : page} onNavigate={navigate} />
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<div className="p-6">{null}</div>}>

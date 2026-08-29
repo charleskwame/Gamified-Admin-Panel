@@ -14,13 +14,9 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    // Lecturer accounts are restricted to the institution's email domain so
-    // a random Google account (or a student using the mobile app) cannot
-    // become a lecturer. Change this pattern when the institution changes.
-    function isAllowedLecturerEmail() {
-      return request.auth.token.email is string
-        && request.auth.token.email.matches(".*@st\\.atu\\.edu\\.gh$");
-    }
+    // NOTE: lecturer access is no longer gated by an email domain. Access is
+    // granted by completing the sign-up flow with a valid, admin-issued course
+    // code (stored in `course_codes`) + OTP verification.
 
     // A signed-in user counts as a lecturer when their lecturers/{uid}
     // profile exists and carries role == "lecturer". Used to grant the web
@@ -59,12 +55,47 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     // Lecturers collection (web dashboard)
     //
-    // The dashboard mirrors the mobile app's Google auto-provisioning, but
-    // writes to `lecturers` and is restricted to the institution domain.
+    // A lecturer profile is created by the web app ONLY after the sign-up OTP
+    // has been verified, at which point `emailVerified` is true. Owners manage
+    // their own profile (rename, course changes from settings, etc.).
     // ---------------------------------------------------------------------
     match /lecturers/{lecturerId} {
-      allow create: if isOwner(lecturerId) && isAllowedLecturerEmail();
+      allow create: if isOwner(lecturerId)
+        && request.resource.data.role == "lecturer"
+        && request.resource.data.emailVerified == true;
       allow read, update, delete: if isOwner(lecturerId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Course codes (sign-up invitation codes)
+    //
+    // Each doc is { code, course } (e.g. { code: "CA001", course:
+    // "computer_architecture" }). `course_codes` must be readable without auth
+    // because the sign-up form validates the code before the Firebase auth
+    // account exists. Codes are admin-issued; seed them via the Firebase
+    // Console / CLI. Updates only allow claiming a code (claimedBy) — the
+    // code -> course mapping itself can never be changed from the client.
+    // ---------------------------------------------------------------------
+    match /course_codes/{codeId} {
+      allow read: if true;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'code', 'course', 'claimedBy', 'claimedAt'
+        ])
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.course == resource.data.course;
+      allow create, delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Lecturer OTP verification (in-flight sign-ups)
+    //
+    // Created right after createUserWithEmailAndPassword, read while the
+    // lecturer enters the emailed code, updated on retries/resends, deleted
+    // once verified. Owner-only so OTP hashes cannot be read by others.
+    // ---------------------------------------------------------------------
+    match /lecturer_verifications/{uid} {
+      allow create, read, update, delete: if isOwner(uid);
     }
 
     // ---------------------------------------------------------------------
