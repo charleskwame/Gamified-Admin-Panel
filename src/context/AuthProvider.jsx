@@ -79,16 +79,16 @@ function friendlyError(err) {
   if (err?.message) {
     return err.message.replace("Firebase: ", "").replace("FirebaseError: ", "").split("(")[0].trim();
   }
-  
+
   if (err && err.text) {
     return `Email service error: ${err.text}`;
   }
-  
+
   if (err && typeof err === 'object') {
     try {
       return `Unexpected error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`;
     } catch (e) {
-      return "An unexpected error occurred. Please try again.";
+      return "An unexpected error has occurred. Please try again.";
     }
   }
 
@@ -291,7 +291,7 @@ export function AuthProvider({ children }) {
       }
 
       setAccessMessage(null);
-      
+
       isSigningUpRef.current = true;
       signupEmailRef.current = mail;
       let cred;
@@ -301,7 +301,7 @@ export function AuthProvider({ children }) {
         isSigningUpRef.current = false;
         throw new Error(friendlyError(err), { cause: err });
       }
-      
+
       const uid = cred.user.uid;
 
       try {
