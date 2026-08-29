@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from "firebase/auth";
+import { updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { CogIcon, ShieldCheckIcon, AcademicCapIcon } from "../components/Icons";
-import ProgressBar from "../components/ProgressBar";
+import { CogIcon, AcademicCapIcon } from "../components/Icons";
 
 export default function SettingsPage() {
   const { userData, user } = useAuth();
@@ -14,12 +13,10 @@ export default function SettingsPage() {
   const [usernameMsg, setUsernameMsg] = useState(null);
   const [usernameSaving, setUsernameSaving] = useState(false);
 
-  // -------- Password State --------
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordMsg, setPasswordMsg] = useState(null);
-  const [passwordSaving, setPasswordSaving] = useState(false);
+  // -------- Course State --------
+  const [course, setCourse] = useState(userData?.course || "");
+  const [courseMsg, setCourseMsg] = useState(null);
+  const [courseSaving, setCourseSaving] = useState(false);
 
   const inputClass =
     "w-full px-3 py-2 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors rounded-lg";
@@ -44,9 +41,8 @@ export default function SettingsPage() {
       await updateProfile(auth.currentUser, { displayName: trimmed });
       const docRef = doc(db, "lecturers", auth.currentUser.uid);
       await updateDoc(docRef, { displayName: trimmed });
-      userData.displayName = trimmed;
       setUsernameMsg({ type: "success", text: "Username updated successfully!" });
-    } catch (err) {
+    } catch {
       // Use generic error message to avoid leaking internal details
       setUsernameMsg({ type: "error", text: "Failed to update username." });
     } finally {
@@ -54,63 +50,30 @@ export default function SettingsPage() {
     }
   };
 
-  // -------- Password Handler --------
-  const handlePasswordSubmit = async (e) => {
+  // -------- Course Handler --------
+  const handleCourseSubmit = async (e) => {
     e.preventDefault();
-    setPasswordMsg(null);
+    setCourseMsg(null);
 
-    if (!currentPassword) {
-      setPasswordMsg({ type: "error", text: "Current password is required." });
+    if (!course) {
+      setCourseMsg({ type: "error", text: "Please select the course you teach." });
       return;
     }
-    if (!newPassword) {
-      setPasswordMsg({ type: "error", text: "New password is required." });
-      return;
-    }
-    // Enforce consistent password policy matching registration requirements
-    if (newPassword.length < 8) {
-      setPasswordMsg({ type: "error", text: "New password must be at least 8 characters." });
-      return;
-    }
-    if (!/[A-Z]/.test(newPassword)) {
-      setPasswordMsg({ type: "error", text: "New password must contain at least one uppercase letter." });
-      return;
-    }
-    if (!/[0-9]/.test(newPassword)) {
-      setPasswordMsg({ type: "error", text: "New password must contain at least one number." });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: "error", text: "New passwords do not match." });
-      return;
-    }
-    if (currentPassword === newPassword) {
-      setPasswordMsg({ type: "error", text: "New password must be different from current password." });
+    if (course === (userData?.course || "")) {
+      setCourseMsg({ type: "error", text: "This course is already selected." });
       return;
     }
 
-    setPasswordSaving(true);
+    setCourseSaving(true);
     try {
-      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, newPassword);
-      setPasswordMsg({ type: "success", text: "Password updated successfully!" });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      const code = err?.code || "";
-      if (code.includes("auth/wrong-password") || code.includes("auth/invalid-credential")) {
-        setPasswordMsg({ type: "error", text: "Current password is incorrect." });
-      } else if (code.includes("auth/weak-password")) {
-        setPasswordMsg({ type: "error", text: "New password is too weak." });
-      } else if (code.includes("auth/too-many-requests")) {
-        setPasswordMsg({ type: "error", text: "Too many attempts. Try again later." });
-      } else {
-        setPasswordMsg({ type: "error", text: "Failed to update password." });
-      }
+      const docRef = doc(db, "lecturers", auth.currentUser.uid);
+      await updateDoc(docRef, { course });
+      setCourseMsg({ type: "success", text: "Course updated successfully!" });
+    } catch {
+      // Use generic error message to avoid leaking internal details
+      setCourseMsg({ type: "error", text: "Failed to update course." });
     } finally {
-      setPasswordSaving(false);
+      setCourseSaving(false);
     }
   };
 
@@ -171,24 +134,24 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      {/* Password Section */}
+      {/* Course Section */}
       <div className="bg-surface border border-border rounded-xl overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border-light">
           <div className="w-9 h-9 bg-primary/10 flex items-center justify-center rounded-lg">
-            <ShieldCheckIcon className="w-5 h-5 text-primary" />
+            <CogIcon className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-text-primary">Password</h2>
-            <p className="text-xs text-text-muted">Update your login password</p>
+            <h2 className="text-base font-bold text-text-primary">Course</h2>
+            <p className="text-xs text-text-muted">Select the course you teach</p>
           </div>
         </div>
-        <form onSubmit={handlePasswordSubmit} className="px-6 py-5 space-y-4">
-          {passwordMsg && (
+        <form onSubmit={handleCourseSubmit} className="px-6 py-5 space-y-4">
+          {courseMsg && (
             <div
               className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                passwordMsg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"
+                courseMsg.type === "success" ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-700"
               }`}>
-              {passwordMsg.type === "success" ? (
+              {courseMsg.type === "success" ? (
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -197,45 +160,27 @@ export default function SettingsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               )}
-              {passwordMsg.text}
+              {courseMsg.text}
             </div>
           )}
           <div>
-            <label className="block text-sm font-semibold text-text-primary mb-1.5">Current Password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className={inputClass}
-              placeholder="Enter current password"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-text-primary mb-1.5">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className={inputClass}
-              placeholder="Enter new password"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-text-primary mb-1.5">Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputClass}
-              placeholder="Confirm new password"
-            />
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">Course You Teach</label>
+            <select
+              value={course}
+              onChange={(e) => setCourse(e.target.value)}
+              className="w-full px-3 py-2 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors rounded-lg bg-surface">
+              <option value="">Select a course...</option>
+              <option value="computer_architecture">Computer Architecture</option>
+              <option value="computer_networking">Computer Networking</option>
+              <option value="software_engineering">Software Engineering</option>
+            </select>
           </div>
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={passwordSaving}
+              disabled={courseSaving}
               className="px-5 py-2 bg-primary text-white font-bold hover:bg-primary-dark disabled:opacity-50 transition-all text-sm rounded-lg">
-              {passwordSaving ? "Updating..." : "Update Password"}
+              {courseSaving ? "Saving..." : "Save"}
             </button>
           </div>
         </form>

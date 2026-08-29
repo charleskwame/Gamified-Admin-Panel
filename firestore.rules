@@ -1,64 +1,157 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: check if the requester is an authenticated lecturer
-    function isAuthenticated() {
+    // ---------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------
+
+    function signedIn() {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Lecturer accounts are restricted to the institution's email domain so
+    // a random Google account (or a student using the mobile app) cannot
+    // become a lecturer. Change this pattern when the institution changes.
+    function isAllowedLecturerEmail() {
+      return request.auth.token.email is string
+        && request.auth.token.email.matches(".*@st\\.atu\\.edu\\.gh$");
+    }
+
+    // A signed-in user counts as a lecturer when their lecturers/{uid}
+    // profile exists and carries role == "lecturer". Used to grant the web
+    // dashboard read access to students, questions and tracking data.
     function isLecturer() {
-      return isAuthenticated()
+      return signedIn()
         && exists(/databases/$(database)/documents/lecturers/$(request.auth.uid))
         && get(/databases/$(database)/documents/lecturers/$(request.auth.uid)).data.role == "lecturer";
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function isValidPublicProfile() {
+      return request.resource.data.keys().hasOnly([
+        'displayName',
+        'score',
+        'computerArchitecturePoints',
+        'computerNetworkingPoints',
+        'softwareEngineeringPoints',
+        'streakNumber',
+        'badges',
+        'selectedBadges',
+        'avatarUrl',
+        'createdAt',
+        'updatedAt',
+      ])
+      && request.resource.data.displayName is string
+      && request.resource.data.score is int
+      && request.resource.data.computerArchitecturePoints is int
+      && request.resource.data.computerNetworkingPoints is int
+      && request.resource.data.softwareEngineeringPoints is int
+      && request.resource.data.streakNumber is int
+      && request.resource.data.badges is list
+      && request.resource.data.selectedBadges is list
+      && request.resource.data.avatarUrl is string;
     }
 
-    // Lecturers collection: only the owning lecturer can read/write their own doc
+    // ---------------------------------------------------------------------
+    // Lecturers collection (web dashboard)
+    //
+    // The dashboard mirrors the mobile app's Google auto-provisioning, but
+    // writes to `lecturers` and is restricted to the institution domain.
+    // ---------------------------------------------------------------------
     match /lecturers/{lecturerId} {
-      allow read, write: if isOwner(lecturerId);
+      allow create: if isOwner(lecturerId) && isAllowedLecturerEmail();
+      allow read, update, delete: if isOwner(lecturerId);
     }
 
-    // Users collection (students): only authenticated lecturers can read.
-    // Owners may also read their own document - this is needed for the legacy
-    // migration path where old builds stored lecturer profiles inside `users`.
+    // ---------------------------------------------------------------------
+    // Users collection (mobile app students)
+    // ---------------------------------------------------------------------
     match /users/{userId} {
-      allow read: if isLecturer() || isOwner(userId);
-      // Students should only be writable through the student app, not here
-      allow write: if false;
+      // Owners keep their existing behaviour (any Google account may
+      // auto-provision a profile); authenticated lecturers can read any
+      // student so the dashboard can list and inspect learners.
+      allow read: if isOwner(userId) || isLecturer();
+      allow create, update, delete: if isOwner(userId);
+
+      match /rankHistory/{entryId} {
+        allow read: if isOwner(userId) || isLecturer();
+        allow create, update, delete: if isOwner(userId);
+      }
     }
 
-    // Questions collections: only lecturers can read/write
+    // Public leaderboard profiles (mobile app)
+    match /publicProfiles/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidPublicProfile();
+      allow delete: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Question banks
+    // ---------------------------------------------------------------------
     match /computer_architecture_questions/{questionId} {
-      allow read, write: if isLecturer();
+      allow read: if true;
+      // Students can't write; lecturers (via the dashboard) can manage questions.
+      allow write: if isLecturer();
     }
 
     match /computer_networking_questions/{questionId} {
-      allow read, write: if isLecturer();
+      allow read: if true;
+      allow write: if isLecturer();
     }
 
     match /software_engineering_questions/{questionId} {
-      allow read, write: if isLecturer();
+      allow read: if true;
+      allow write: if isLecturer();
     }
 
-    // Incorrect questions tracking collections: lecturers can read
-    match /computer_architecture_questions_gotten_incorrectly/{docId} {
+    // ---------------------------------------------------------------------
+    // Incorrect-question tracking (mobile app writes, dashboard reads)
+    // ---------------------------------------------------------------------
+    match /computer_architecture_questions_gotten_incorrectly/{questionId} {
       allow read: if isLecturer();
-      allow write: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['questionId', 'number_of_wrong'])
+        && request.resource.data.questionId == questionId
+        && request.resource.data.number_of_wrong is int
+        && (
+          (!exists(/databases/$(database)/documents/computer_architecture_questions_gotten_incorrectly/$(questionId)) && request.resource.data.number_of_wrong == 1)
+          || (exists(/databases/$(database)/documents/computer_architecture_questions_gotten_incorrectly/$(questionId))
+              && request.resource.data.number_of_wrong == resource.data.number_of_wrong + 1)
+        );
+      allow delete: if false;
     }
 
-    match /computer_networking_questions_gotten_incorrectly/{docId} {
+    match /computer_networking_questions_gotten_incorrectly/{questionId} {
       allow read: if isLecturer();
-      allow write: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['questionId', 'number_of_wrong'])
+        && request.resource.data.questionId == questionId
+        && request.resource.data.number_of_wrong is int
+        && (
+          (!exists(/databases/$(database)/documents/computer_networking_questions_gotten_incorrectly/$(questionId)) && request.resource.data.number_of_wrong == 1)
+          || (exists(/databases/$(database)/documents/computer_networking_questions_gotten_incorrectly/$(questionId))
+              && request.resource.data.number_of_wrong == resource.data.number_of_wrong + 1)
+        );
+      allow delete: if false;
     }
 
-    match /software_engineering_questions_gotten_incorrectly/{docId} {
+    match /software_engineering_questions_gotten_incorrectly/{questionId} {
       allow read: if isLecturer();
-      allow write: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['questionId', 'number_of_wrong'])
+        && request.resource.data.questionId == questionId
+        && request.resource.data.number_of_wrong is int
+        && (
+          (!exists(/databases/$(database)/documents/software_engineering_questions_gotten_incorrectly/$(questionId)) && request.resource.data.number_of_wrong == 1)
+          || (exists(/databases/$(database)/documents/software_engineering_questions_gotten_incorrectly/$(questionId))
+              && request.resource.data.number_of_wrong == resource.data.number_of_wrong + 1)
+        );
+      allow delete: if false;
     }
 
     // Deny everything else by default

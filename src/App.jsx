@@ -31,6 +31,11 @@ function AppContent() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  // When signed out, clear any deep link so the next sign-in lands on the dashboard.
+  useEffect(() => {
+    if (!user && window.location.hash) window.location.hash = "";
+  }, [user]);
+
   const navigate = useCallback((target, uid) => {
     if (target === "student" && uid) {
       window.location.hash = `student/${uid}`;
@@ -44,8 +49,7 @@ function AppContent() {
   }, []);
 
   if (loading || isChecking) return <ProgressBar isLoading={true} />;
-  if (!user || !user.emailVerified) {
-    if (!user && window.location.hash) window.location.hash = "";
+  if (!user) {
     return <LoginPage />;
   }
 
