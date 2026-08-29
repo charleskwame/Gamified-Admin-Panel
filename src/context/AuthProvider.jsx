@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  deleteUser,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -27,6 +30,7 @@ import {
   isOtpValid,
 } from "../utils/otp";
 import { EMAILJS_CONFIGURED, sendOtpEmail } from "../utils/email";
+import { auditLog } from "../utils/security";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const COURSE_CODE_PATTERN = /^[A-Z0-9]{1,12}$/;
@@ -168,6 +172,14 @@ export function AuthProvider({ children }) {
       if (resolved) {
         if (resolved.data.role !== "lecturer") {
           const err = new Error("Access denied. Only lecturers can access this panel. If this is an error, contact the school IT administrators.");
+          err.accessDenied = true;
+          throw err;
+        }
+        // Safety net: soft-deleted accounts must never sign back in (e.g. if
+        // the Firebase Auth deletion did not complete or the login was
+        // recreated by an administrator).
+        if (resolved.data.deleted) {
+          const err = new Error("This account has been deleted. If you believe this is a mistake, contact the school IT administrators.");
           err.accessDenied = true;
           throw err;
         }
@@ -452,6 +464,79 @@ export function AuthProvider({ children }) {
     setUserData(null);
   }, []);
 
+  /**
+   * Soft-delete the signed-in lecturer's account:
+   *  1. Re-authenticate (Firebase requires a recent login before deletion,
+   *     and the password doubles as confirmation of intent).
+   *  2. Mark the Firestore profile `deleted: true` so the record is preserved
+   *     for audit/recovery instead of being removed.
+   *  3. Delete the Firebase Auth user so the login can no longer be used.
+   * Afterwards the auth state listener clears the session and the app falls
+   * back to the login page.
+   */
+  const deleteAccount = useCallback(async (password) => {
+    const current = auth.currentUser;
+    if (!current || !current.email) {
+      throw new Error("You must be signed in to delete your account.");
+    }
+    if (!password) {
+      throw new Error("Please enter your password to confirm account deletion.");
+    }
+
+    // 1. Re-authenticate. A stale session is the most common failure mode.
+    try {
+      const credential = EmailAuthProvider.credential(current.email, password);
+      await reauthenticateWithCredential(current, credential);
+    } catch (err) {
+      if (err?.code?.includes("requires-recent-login")) {
+        throw new Error("Your session is too old. Please log out and log back in before deleting your account.", {
+          cause: err,
+        });
+      }
+      throw new Error(friendlyError(err), { cause: err });
+    }
+
+    // 2. Soft-delete the lecturer profile in Firestore.
+    try {
+      await updateDoc(doc(db, "lecturers", current.uid), {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      throw new Error(friendlyError(err), { cause: err });
+    }
+
+    // 3. Best-effort cleanup of any stale pending-verification document.
+    try {
+      await deleteDoc(doc(db, "lecturer_verifications", current.uid));
+    } catch (cleanupErr) {
+      console.warn("Verification cleanup failed:", cleanupErr);
+    }
+
+    auditLog("account_deleted", { uid: current.uid, email: current.email });
+
+    // 4. Remove the Firebase Auth account. After this onAuthStateChanged
+    // fires with a null user and the app returns to the login page.
+    try {
+      await deleteUser(current);
+    } catch (err) {
+      // The profile is already soft-deleted, so the account is safe even if
+      // the auth deletion fails — surface a clear message and let the
+      // deleted-profile guard block any further sign-ins.
+      throw new Error(
+        "Your account has been deactivated, but the final login removal failed. Please contact support.",
+        { cause: err }
+      );
+    }
+
+    setAccessMessage(null);
+    setNeedsVerification(false);
+    setPendingEmail("");
+    setDevOtp(null);
+    setUser(null);
+    setUserData(null);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -467,6 +552,7 @@ export function AuthProvider({ children }) {
         verifyOtp,
         resendOtp,
         logout,
+        deleteAccount,
       }}
     >
       {children}
