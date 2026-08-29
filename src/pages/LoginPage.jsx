@@ -31,6 +31,12 @@ function getPasswordChecks(password) {
 function getFriendlyErrorMessage(err) {
   const msg = err?.message || "";
   const code = err?.code || "";
+  if (msg.includes("lecturer profile could not be saved")) {
+    if (msg.includes("permission")) {
+      return "Registration almost succeeded, but Firestore security rules blocked saving your lecturer profile. The account was rolled back \u2014 ask the project owner to deploy the current `firestore.rules`, then try again.";
+    }
+    return "Registration could not be completed because your lecturer profile could not be saved. The account was rolled back \u2014 please try again or contact support.";
+  }
   if (code.includes("auth/email-already-in-use")) {
     return "This email is already registered. Please sign in instead.";
   }
@@ -45,6 +51,9 @@ function getFriendlyErrorMessage(err) {
   }
   if (code.includes("auth/too-many-requests")) {
     return "Too many failed attempts. Access to this account has been temporarily disabled. Please try again later.";
+  }
+  if (code.includes("permission-denied") || msg.includes("permission-denied")) {
+    return "Firestore permission denied. Your security rules may be out of date \u2014 deploy the rules from `firestore.rules`.";
   }
   if (msg.includes("Access denied")) {
     return "Access denied. Only registered lecturers can access this panel.";

@@ -23,9 +23,11 @@ service cloud.firestore {
       allow read, write: if isOwner(lecturerId);
     }
 
-    // Users collection (students): only authenticated lecturers can read
+    // Users collection (students): only authenticated lecturers can read.
+    // Owners may also read their own document - this is needed for the legacy
+    // migration path where old builds stored lecturer profiles inside `users`.
     match /users/{userId} {
-      allow read: if isLecturer();
+      allow read: if isLecturer() || isOwner(userId);
       // Students should only be writable through the student app, not here
       allow write: if false;
     }

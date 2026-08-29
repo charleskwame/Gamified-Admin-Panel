@@ -12,6 +12,7 @@ const PIE_COLORS = ["#003F91", "#2563EB", "#10B981", "#F59E0B", "#EF4444"];
 
 export default function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
@@ -100,6 +101,11 @@ export default function DashboardPage({ onNavigate }) {
         });
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+        setError(
+          err?.message?.includes("permission-denied") || err?.code === "permission-denied"
+            ? "Permission denied while loading analytics. Your Firestore security rules likely need updating \u2014 deploy the rules from `firestore.rules`."
+            : "Failed to load analytics. Please check your connection and try again."
+        );
       } finally {
         setLoading(false);
       }
@@ -135,6 +141,20 @@ export default function DashboardPage({ onNavigate }) {
         <h1 className="text-2xl font-extrabold text-text-primary">Dashboard</h1>
         <p className="text-sm text-text-secondary mt-0.5">Overview of student activity and progress</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-3 rounded-lg">
+          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p className="text-sm font-medium text-red-700">{error}</p>
+            <p className="text-xs text-red-500 mt-1">
+              Note: if you just created this lecturer account, make sure your email was verified and that the Firestore security rules in `firestore.rules` are deployed to your project.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard icon={UsersIcon} label="Total Students" value={stats?.totalStudents ?? 0} sub="Registered learners" color="blue" />
