@@ -144,7 +144,7 @@ export function AuthProvider({ children }) {
       const resolved = await resolveLecturer(firebaseUser.uid);
       if (resolved) {
         if (resolved.data.role !== "lecturer") {
-          const err = new Error("Access denied. Only lecturers can access this panel.");
+          const err = new Error("Access denied. Only lecturers can access this panel. If this is an error, contact the school IT administrators.");
           err.accessDenied = true;
           throw err;
         }
