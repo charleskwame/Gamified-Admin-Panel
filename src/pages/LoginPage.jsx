@@ -150,7 +150,7 @@ export default function LoginPage() {
                 disabled={busy}
                 className="w-full bg-primary text-white text-sm font-bold py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                 {busy ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center justify-center gap-1.5">
                     <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                     Signing in...
                   </span>
@@ -236,7 +236,7 @@ export default function LoginPage() {
                 disabled={busy}
                 className="w-full bg-primary text-white text-sm font-bold py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
                 {busy ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex flex-col items-center justify-center gap-1.5">
                     <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                     Creating account...
                   </span>
