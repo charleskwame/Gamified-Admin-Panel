@@ -3,7 +3,8 @@ import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "fi
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { QuestionSkeleton, Skeleton } from "../components/Skeleton";
-import { sanitizeObject, validateCourseAccess, auditLog } from "../utils/security";
+import { SearchIcon } from "../components/Icons";
+import { sanitizeObject, auditLog } from "../utils/security";
 
 const COURSE_COLLECTION = {
   computer_architecture: "computer_architecture_questions",
@@ -42,10 +43,29 @@ export default function QuestionsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const pageCount = Math.max(1, Math.ceil(questions.length / pageSize));
-  const paginatedQuestions = questions.slice((page - 1) * pageSize, page * pageSize);
+
+  // Filter questions by a keyword (case-insensitive) across the question text,
+  // options, explanation, and category. Supports both the `options[]` array
+  // schema and the legacy `optionA..optionD` shape.
+  const filteredQuestions = questions.filter((q) => {
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+    const optionValues =
+      Array.isArray(q.options)
+        ? q.options.join(" ")
+        : ["A", "B", "C", "D"].map((l) => q[`option${l}`] || "").join(" ");
+    const haystack = [q.questionText, q.explanation, q.category, optionValues]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(term);
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
+  const paginatedQuestions = filteredQuestions.slice((page - 1) * pageSize, page * pageSize);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [form, setForm] = useState({
     questionText: "",
@@ -227,6 +247,21 @@ export default function QuestionsPage() {
         </div>
       )}
 
+      {/* Search */}
+      <div className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+        <input
+          type="text"
+          placeholder="Search questions by keyword..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="w-full pl-9 pr-4 py-2.5 border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all rounded-lg"
+        />
+      </div>
+
       {/* Add Question Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-surface border border-border p-6 rounded-xl space-y-5">
@@ -359,10 +394,20 @@ export default function QuestionsPage() {
           <h2 className="text-lg font-bold text-text-primary mb-1">No Questions Yet</h2>
           <p className="text-sm text-text-secondary">Add your first question to get started.</p>
         </div>
+      ) : filteredQuestions.length === 0 ? (
+        <div className="bg-surface border border-border p-12 rounded-xl text-center">
+          <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mx-auto mb-4 rounded-full">
+            <SearchIcon className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-lg font-bold text-text-primary mb-1">No Matching Questions</h2>
+          <p className="text-sm text-text-secondary">
+            No questions match &ldquo;{search}&rdquo;. Try a different keyword.
+          </p>
+        </div>
       ) : (
         <div className="bg-surface border border-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border-light">
-            <h2 className="text-base font-bold text-text-primary">All Questions ({questions.length})</h2>
+            <h2 className="text-base font-bold text-text-primary">All Questions ({filteredQuestions.length})</h2>
           </div>
           <div className="divide-y divide-border-light">
             {paginatedQuestions.map((q, idx) => (
