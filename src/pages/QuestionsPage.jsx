@@ -16,6 +16,22 @@ const COURSE_LABEL = {
   software_engineering: "Software Engineering",
 };
 
+// Render the text for an option in either supported shape:
+//   - DB schema: q.options = ["a) ...", "b) ...", "c) ...", "d) ..."]
+//   - Older/legacy shape: q.optionA .. q.optionD
+// A leading letter prefix (e.g. "b)", "A.", "c:") is stripped so chips
+// display cleanly next to the A/B/C/D badge.
+const OPTION_LETTERS = ["A", "B", "C", "D"];
+function optionText(q, letter) {
+  if (Array.isArray(q.options)) {
+    const idx = OPTION_LETTERS.indexOf(letter.toUpperCase());
+    const raw = q.options[idx];
+    if (raw == null) return "";
+    return raw.replace(/^\s*[a-dA-D][.)\]:-]?\s*/, "").trim();
+  }
+  return q[`option${letter.toUpperCase()}`] || "";
+}
+
 export default function QuestionsPage() {
   const { user, userData } = useAuth();
   const course = userData?.course;
@@ -104,11 +120,9 @@ export default function QuestionsPage() {
     try {
       const payload = sanitizeObject({
         questionText: questionText.trim(),
-        optionA: optionA.trim(),
-        optionB: optionB.trim(),
-        optionC: optionC.trim(),
-        optionD: optionD.trim(),
-        correctAnswer,
+        options: [`a) ${optionA.trim()}`, `b) ${optionB.trim()}`, `c) ${optionC.trim()}`, `d) ${optionD.trim()}`],
+        correctAnswer: correctAnswer.toLowerCase(),
+        category: COURSE_LABEL[course],
         explanation: explanation.trim(),
         createdBy: user?.uid || "unknown",
         createdAt: serverTimestamp(),
@@ -360,15 +374,15 @@ export default function QuestionsPage() {
                       {q.questionText}
                     </p>
                     <div className="flex flex-wrap gap-2 mb-2">
-                      {["A", "B", "C", "D"].map((opt) => (
+                      {OPTION_LETTERS.map((opt) => (
                         <span
                           key={opt}
                           className={`px-2.5 py-1 text-xs font-semibold rounded-md ${
-                            q.correctAnswer === opt
+                            (q.correctAnswer || "").toLowerCase() === opt.toLowerCase()
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-gray-50 text-text-secondary border border-border"
                           }`}>
-                          {opt}: {q[`option${opt}`] || ""}
+                          {opt}: {optionText(q, opt) || ""}
                         </span>
                       ))}
                     </div>

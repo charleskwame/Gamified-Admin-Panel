@@ -1,11 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
-import { jsPDF } from "jspdf";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { Skeleton } from "../components/Skeleton";
 import { LightBulbIcon, RobotIcon } from "../components/Icons";
-import { validateCourseAccess, auditLog } from "../utils/security";
+import { auditLog } from "../utils/security";
 import { generateAIInsights } from "../utils/aiInsights";
 
 const COURSE_COLLECTION = {
@@ -108,30 +107,6 @@ export default function InsightsPage() {
     fetchInsights();
   }, [course, questionsCollection, incorrectCollection]);
 
-  const handleExportPDF = useCallback(() => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Course Insights Report", 20, 30);
-    doc.setFontSize(12);
-    doc.text(`Course: ${COURSE_LABEL[course] || course}`, 20, 45);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 55);
-
-    let y = 75;
-    insights.slice(0, 20).forEach((insight) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 30;
-      }
-      doc.setFontSize(11);
-      doc.text(`• Question ID: ${insight.questionId}`, 20, y);
-      doc.setFontSize(10);
-      doc.text(`  ${insight.description}`, 20, y + 7);
-      y += 18;
-    });
-
-    doc.save(`insights_${course}_${new Date().toISOString().slice(0, 10)}.pdf`);
-  }, [insights, course]);
-
   const handleAIAnalysis = async () => {
     if (!course) return;
     setShowAIModal(true);
@@ -200,14 +175,9 @@ export default function InsightsPage() {
         <div className="flex gap-2">
           <button
             onClick={handleAIAnalysis}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white font-semibold hover:bg-primary-dark transition-all text-sm rounded-lg">
-            <RobotIcon className="w-4 h-4" />
+            className="inline-flex items-center gap-2 px-3 py-1 bg-primary text-white font-semibold hover:bg-primary-dark transition-all text-sm rounded-lg">
+            <RobotIcon />
             AI Analysis
-          </button>
-          <button
-            onClick={handleExportPDF}
-            className="px-4 py-2 bg-surface border border-border text-text-primary font-semibold hover:bg-bg-base transition-all text-sm rounded-lg">
-            Export PDF
           </button>
         </div>
       </div>
