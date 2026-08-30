@@ -83,7 +83,7 @@ export default function StudentsPage({ onNavigate }) {
 
   const ptsField = course ? cfg?.ptsField : "score";
   const ansField = course ? cfg?.ansField : "questionsAnswered";
-  const otherSortKeys = ["streakNumber", "questionsAnswered", "totalTime", "lastActiveDate"];
+  const otherSortKeys = ["streakNumber", "questionsAnswered"];
 
   const filtered = students.filter((s) => {
     const q = search.toLowerCase();
@@ -98,11 +98,6 @@ export default function StudentsPage({ onNavigate }) {
       const bAns = course ? b[cfg?.ansField] || 0 : b.questionsAnswered || 0;
       return bAns - aAns;
     }
-    if (sortKey === "lastActiveDate") {
-      const aDate = a.lastActiveDate ? new Date(a.lastActiveDate) : new Date(0);
-      const bDate = b.lastActiveDate ? new Date(b.lastActiveDate) : new Date(0);
-      return bDate - aDate;
-    }
     return 0;
   });
 
@@ -111,21 +106,19 @@ export default function StudentsPage({ onNavigate }) {
       score: course ? `Score` : "Score Pts",
       streakNumber: "Streak",
       questionsAnswered: "Answered",
-      lastActiveDate: "Last Active",
     };
     return labels[key] || key;
   };
 
   // Generate CSV export
   const handleExport = () => {
-    const headers = ["Name", "Email", "Score", "Streak", "Answered", "Last Active"];
+    const headers = ["Name", "Email", "Score", "Streak", "Answered"];
     const rows = sorted.map((s) => [
       s.displayName || "Unknown",
       maskEmail(s.email || ""),
       s[ptsField] || 0,
       s.streakNumber || 0,
       s[ansField] || 0,
-      s.lastActiveDate || "",
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -219,8 +212,6 @@ export default function StudentsPage({ onNavigate }) {
                 <th className="px-6 py-3">{course ? `${cfg?.label || "Score"} Pts` : "Score Pts"}</th>
                 <th className="px-6 py-3">Streak</th>
                 <th className="px-6 py-3">Answered</th>
-                <th className="px-6 py-3">Total Time</th>
-                <th className="px-6 py-3">Last Active</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
@@ -248,23 +239,11 @@ export default function StudentsPage({ onNavigate }) {
                     )}
                   </td>
                   <td className="px-6 py-3.5 text-text-secondary">{s[ansField] || 0}</td>
-                  <td className="px-6 py-3.5 text-text-secondary">
-                    {s.totalTime ? `${Math.floor(s.totalTime / 60)}h ${Math.round(s.totalTime % 60)}m` : "—"}
-                  </td>
-                  <td className="px-6 py-3.5 text-text-muted text-xs">
-                    {s.lastActiveDate
-                      ? new Date(s.lastActiveDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "—"}
-                  </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
+                  <td colSpan={4} className="px-6 py-16 text-center">
                     <div className="text-text-muted text-sm mb-1">No students found</div>
                     <p className="text-xs text-text-muted">Try adjusting your search or filters</p>
                   </td>

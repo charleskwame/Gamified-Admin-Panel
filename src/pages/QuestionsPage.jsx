@@ -153,7 +153,7 @@ export default function QuestionsPage() {
 
   if (!course || !collectionName) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-6 max-w-7xl mx-auto">
         <div className="bg-surface border border-border p-12 rounded-xl text-center">
           <div className="w-16 h-16 bg-primary/10 flex items-center justify-center mx-auto mb-4 rounded-full">
             <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -176,7 +176,7 @@ export default function QuestionsPage() {
   const labelClass = "block text-sm font-semibold text-text-primary mb-1.5";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

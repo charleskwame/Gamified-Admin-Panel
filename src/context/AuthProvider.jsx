@@ -139,7 +139,6 @@ export function AuthProvider({ children }) {
             emailVerified: true,
             role: "lecturer",
             course: legacy.course || "",
-            lastActiveDate: legacy.lastActiveDate || "",
             createdAt: serverTimestamp(),
           });
         } catch (migrateErr) {
@@ -402,7 +401,6 @@ export function AuthProvider({ children }) {
         role: "lecturer",
         course: rec.course || "",
         claimedCourseCode: rec.courseCode || "",
-        lastActiveDate: "",
         createdAt: serverTimestamp(),
       };
       await setDoc(doc(db, "lecturers", uid), profile);

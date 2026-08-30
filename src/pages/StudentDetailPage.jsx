@@ -144,8 +144,6 @@ export default function StudentDetailPage({ uid, onBack }) {
     email,
     score,
     streakNumber,
-    totalTime,
-    lastActiveDate,
   } = data;
 
   if (!cfg) {
@@ -192,16 +190,6 @@ export default function StudentDetailPage({ uid, onBack }) {
               <h1 className="text-xl font-extrabold text-text-primary">{displayName || "Unknown"}</h1>
               <p className="text-sm text-text-secondary">{maskEmail(email) || "No email"}</p>
               <p className="text-xs text-text-muted mt-1">All courses</p>
-              {lastActiveDate && (
-                <p className="text-xs text-text-muted mt-0.5">
-                  Last active:{" "}
-                  {new Date(lastActiveDate).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -289,12 +277,6 @@ export default function StudentDetailPage({ uid, onBack }) {
           <h2 className="text-base font-bold text-text-primary mb-4">Activity Details</h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 border-b border-border-light">
-              <span className="text-sm text-text-secondary">Total Time</span>
-              <span className="text-sm font-semibold text-text-primary">
-                {totalTime ? `${Math.floor(totalTime / 60)}h ${Math.round(totalTime % 60)}m` : "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b border-border-light">
               <span className="text-sm text-text-secondary">Questions Answered</span>
               <span className="text-sm font-semibold text-text-primary">{questionsAnswered || 0}</span>
             </div>
@@ -353,16 +335,6 @@ export default function StudentDetailPage({ uid, onBack }) {
             <p className="text-xs text-text-muted mt-1">
               {cfg.label} — enrolled student
             </p>
-            {lastActiveDate && (
-              <p className="text-xs text-text-muted mt-0.5">
-                Last active:{" "}
-                {new Date(lastActiveDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-            )}
           </div>
         </div>
       </div>

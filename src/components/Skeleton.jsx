@@ -45,18 +45,6 @@ export function StudentRowSkeleton() {
       <td className="px-6 py-3.5">
         <Skeleton className="w-10 h-5" />
       </td>
-      <td className="px-6 py-3.5">
-        <Skeleton className="w-12 h-5" />
-      </td>
-      <td className="px-6 py-3.5">
-        <Skeleton className="w-12 h-5" />
-      </td>
-      <td className="px-6 py-3.5">
-        <Skeleton className="w-12 h-5" />
-      </td>
-      <td className="px-6 py-3.5">
-        <Skeleton className="w-20 h-4" />
-      </td>
     </tr>
   );
 }
