@@ -5,6 +5,7 @@ import { Skeleton, StudentRowSkeleton } from "../components/Skeleton";
 import { SearchIcon, FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { auditLog } from "../utils/security";
+import { maskEmail } from "../utils/maskEmail";
 
 const COURSE_CONFIG = {
   computer_architecture: {
@@ -120,7 +121,7 @@ export default function StudentsPage({ onNavigate }) {
     const headers = ["Name", "Email", "Score", "Streak", "Answered", "Last Active"];
     const rows = sorted.map((s) => [
       s.displayName || "Unknown",
-      s.email || "",
+      maskEmail(s.email || ""),
       s[ptsField] || 0,
       s.streakNumber || 0,
       s[ansField] || 0,
@@ -232,7 +233,7 @@ export default function StudentsPage({ onNavigate }) {
                       </div>
                       <div>
                         <p className="font-semibold text-text-primary text-sm">{s.displayName || "Unknown"}</p>
-                        <p className="text-xs text-text-muted truncate max-w-48">{s.email || ""}</p>
+                        <p className="text-xs text-text-muted truncate max-w-48">{maskEmail(s.email) || ""}</p>
                       </div>
                     </div>
                   </td>

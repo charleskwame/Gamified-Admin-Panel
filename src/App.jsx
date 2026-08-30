@@ -4,7 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import OtpVerificationPage from "./pages/OtpVerificationPage";
 import TopNav from "./components/TopNav";
-import ProgressBar from "./components/ProgressBar";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const StudentsPage = lazy(() => import("./pages/StudentsPage"));
@@ -12,6 +12,12 @@ const StudentDetailPage = lazy(() => import("./pages/StudentDetailPage"));
 const QuestionsPage = lazy(() => import("./pages/QuestionsPage"));
 const InsightsPage = lazy(() => import("./pages/InsightsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+
+const AUTH_LOADING_MESSAGES = [
+  "Checking your session...",
+  "Loading your dashboard...",
+  "Just a moment...",
+];
 
 function parseHash() {
   const hash = window.location.hash.replace("#", "");
@@ -50,7 +56,7 @@ function AppContent() {
     window.location.hash = "students";
   }, []);
 
-  if (loading) return <ProgressBar isLoading={true} />;
+  if (loading) return <LoadingSpinner fullScreen messages={AUTH_LOADING_MESSAGES} />;
   if (needsVerification) return <OtpVerificationPage />;
   if (!user || !userData) {
     return <LoginPage />;
@@ -60,10 +66,9 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen bg-bg-base">
-      <ProgressBar isLoading={loading} />
       <TopNav activePage={page === "student" ? "students" : page} onNavigate={navigate} />
       <main className="flex-1 overflow-y-auto">
-        <Suspense fallback={<div className="p-6">{null}</div>}>
+        <Suspense fallback={<LoadingSpinner text="Loading page..." />}>
           {page === "dashboard" && <DashboardPage onNavigate={navigate} />}
           {page === "students" && <StudentsPage onNavigate={navigate} />}
           {page === "student" && <StudentDetailPage uid={uid} onBack={goBack} />}

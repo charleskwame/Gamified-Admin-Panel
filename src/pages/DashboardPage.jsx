@@ -7,6 +7,7 @@ import { UsersIcon, DocumentTextIcon, StarIcon, FireIcon, ChartBarIcon } from ".
 import { useAuth } from "../context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { auditLog } from "../utils/security";
+import { maskEmail } from "../utils/maskEmail";
 
 const COURSE_CONFIG = {
   computer_architecture: {
@@ -50,7 +51,7 @@ export default function DashboardPage({ onNavigate }) {
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
-  const [categoryData, setCategoryData] = useState([]);
+  const [answerData, setAnswerData] = useState([]);
 
   const { userData } = useAuth();
   const course = userData?.course || null;
@@ -67,7 +68,7 @@ export default function DashboardPage({ onNavigate }) {
         if (!cfg) {
           setStats(null);
           setStudents([]);
-          setCategoryData([]);
+          setAnswerData([]);
           auditLog("dashboard_viewed", { course, totalStudents: 0 });
           return;
         }
@@ -97,8 +98,16 @@ export default function DashboardPage({ onNavigate }) {
           courseAccuracy: courseAnswered > 0 ? ((courseCorrect / courseAnswered) * 100).toFixed(1) : 0,
         });
 
-        setCategoryData(
-          courseTotal > 0 ? [{ name: cfg.label, points: courseTotal, color: cfg.color }] : []
+        const courseWrong = Math.max(courseAnswered - courseCorrect, 0);
+        const hasAnswerData = courseAnswered > 0 || courseCorrect > 0 || courseWrong > 0;
+        setAnswerData(
+          hasAnswerData
+            ? [
+                { name: "Answered", value: courseAnswered, color: "#1E40AF" },
+                { name: "Correct", value: courseCorrect, color: "#059669" },
+                { name: "Wrong", value: courseWrong, color: "#DC2626" },
+              ]
+            : []
         );
 
         const sorted = [...courseStudents].sort((a, b) => (b[cfg.ptsField] || 0) - (a[cfg.ptsField] || 0));
@@ -214,23 +223,33 @@ export default function DashboardPage({ onNavigate }) {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-surface border border-border p-6 rounded-xl">
-              <h2 className="text-base font-bold text-text-primary mb-4">{cfg.label} Points</h2>
-              {categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={categoryData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
-                      formatter={(v) => [v.toLocaleString(), "Points"]}
-                    />
-                    <Bar dataKey="points" radius={[4, 4, 0, 0]} barSize={48}>
-                      {categoryData.map((e, i) => (
-                        <Cell key={i} fill={e.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              <h2 className="text-base font-bold text-text-primary mb-4">Question Breakdown</h2>
+              {answerData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={answerData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
+                        formatter={(v) => [v.toLocaleString(), "Questions"]}
+                      />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={48}>
+                        {answerData.map((e, i) => (
+                          <Cell key={i} fill={e.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-4 mt-2">
+                    {answerData.map((e) => (
+                      <div key={e.name} className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: e.color }} />
+                        {e.name}: {e.value.toLocaleString()}
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="flex items-center justify-center h-52 text-text-muted text-sm">
                   No student data available yet.
@@ -293,7 +312,7 @@ export default function DashboardPage({ onNavigate }) {
                           </div>
                           <div>
                             <p className="font-semibold text-text-primary text-sm">{s.displayName || "Unknown"}</p>
-                            <p className="text-xs text-text-muted truncate max-w-40">{s.email || ""}</p>
+                            <p className="text-xs text-text-muted truncate max-w-40">{maskEmail(s.email) || ""}</p>
                           </div>
                         </div>
                       </td>

@@ -6,6 +6,7 @@ import { Skeleton } from "../components/Skeleton";
 import { FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
 import { auditLog } from "../utils/security";
+import { maskEmail } from "../utils/maskEmail";
 
 const COURSE_CONFIG = {
   computer_architecture: {
@@ -156,6 +157,17 @@ export default function StudentDetailPage({ uid, onBack }) {
     const computerArchitectureCorrect = data.computerArchitectureCorrect || 0;
     const computerNetworkingCorrect = data.computerNetworkingCorrect || 0;
     const softwareEngineeringCorrect = data.softwareEngineeringCorrect || 0;
+    const totalCorrect =
+      computerArchitectureCorrect + computerNetworkingCorrect + softwareEngineeringCorrect;
+    const totalWrong = Math.max(questionsAnswered - totalCorrect, 0);
+    const answerData =
+      questionsAnswered > 0 || totalCorrect > 0 || totalWrong > 0
+        ? [
+            { name: "Answered", value: questionsAnswered, color: "#1E40AF" },
+            { name: "Correct", value: totalCorrect, color: "#059669" },
+            { name: "Wrong", value: totalWrong, color: "#DC2626" },
+          ]
+        : [];
     const coursePoints = [
       { name: "Computer Architecture", value: computerArchitecturePoints, color: "#1E40AF" },
       { name: "Computer Networking", value: computerNetworkingPoints, color: "#0091EA" },
@@ -178,7 +190,7 @@ export default function StudentDetailPage({ uid, onBack }) {
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-text-primary">{displayName || "Unknown"}</h1>
-              <p className="text-sm text-text-secondary">{email || "No email"}</p>
+              <p className="text-sm text-text-secondary">{maskEmail(email) || "No email"}</p>
               <p className="text-xs text-text-muted mt-1">All courses</p>
               {lastActiveDate && (
                 <p className="text-xs text-text-muted mt-0.5">
@@ -236,30 +248,38 @@ export default function StudentDetailPage({ uid, onBack }) {
             </div>
 
             <div className="bg-surface border border-border p-6 rounded-xl">
-              <h2 className="text-base font-bold text-text-primary mb-4">Correct Answers by Course</h2>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart
-                  data={coursePoints.map((c) => ({
-                    name: c.name,
-                    correct:
-                      c.name === "Computer Architecture"
-                        ? computerArchitectureCorrect
-                        : c.name === "Computer Networking"
-                          ? computerNetworkingCorrect
-                          : softwareEngineeringCorrect,
-                    color: c.color,
-                  }))}
-                  margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }} formatter={(v) => [v, "Correct"]} />
-                  <Bar dataKey="correct" radius={[4, 4, 0, 0]} barSize={48}>
-                    {coursePoints.map((e, i) => (
-                      <Cell key={i} fill={e.color} />
+              <h2 className="text-base font-bold text-text-primary mb-4">Question Breakdown</h2>
+              {answerData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={answerData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
+                        formatter={(v) => [v.toLocaleString(), "Questions"]}
+                      />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={48}>
+                        {answerData.map((e, i) => (
+                          <Cell key={i} fill={e.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-4 mt-2">
+                    {answerData.map((e) => (
+                      <div key={e.name} className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: e.color }} />
+                        {e.name}: {e.value.toLocaleString()}
+                      </div>
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-52 text-text-muted text-sm">
+                  No student data available yet.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -302,6 +322,16 @@ export default function StudentDetailPage({ uid, onBack }) {
   const courseCorrect = data[cfg.corField] || 0;
   const courseAccuracy = courseAnswered > 0 ? Math.round((courseCorrect / courseAnswered) * 100) : 0;
 
+  const courseWrong = Math.max(courseAnswered - courseCorrect, 0);
+  const answerData =
+    courseAnswered > 0 || courseCorrect > 0 || courseWrong > 0
+      ? [
+          { name: "Answered", value: courseAnswered, color: "#1E40AF" },
+          { name: "Correct", value: courseCorrect, color: "#059669" },
+          { name: "Wrong", value: courseWrong, color: "#DC2626" },
+        ]
+      : [];
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
@@ -319,7 +349,7 @@ export default function StudentDetailPage({ uid, onBack }) {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-text-primary">{displayName || "Unknown"}</h1>
-            <p className="text-sm text-text-secondary">{email || "No email"}</p>
+            <p className="text-sm text-text-secondary">{maskEmail(email) || "No email"}</p>
             <p className="text-xs text-text-muted mt-1">
               {cfg.label} — enrolled student
             </p>
@@ -354,9 +384,45 @@ export default function StudentDetailPage({ uid, onBack }) {
       </div>
 
       {/* Course Scoped Performance */}
-      <div className="bg-surface border border-border p-6 rounded-xl">
-        <h2 className="text-base font-bold text-text-primary mb-4">{cfg.label} Performance</h2>
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-surface border border-border p-6 rounded-xl">
+          <h2 className="text-base font-bold text-text-primary mb-4">Question Breakdown</h2>
+          {answerData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={answerData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "#6B7A8A" }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
+                    formatter={(v) => [v.toLocaleString(), "Questions"]}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={48}>
+                    {answerData.map((e, i) => (
+                      <Cell key={i} fill={e.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap justify-center gap-4 mt-2">
+                {answerData.map((e) => (
+                  <div key={e.name} className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: e.color }} />
+                    {e.name}: {e.value.toLocaleString()}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-52 text-text-muted text-sm">
+              No student data available yet.
+            </div>
+          )}
+        </div>
+
+        <div className="bg-surface border border-border p-6 rounded-xl">
+          <h2 className="text-base font-bold text-text-primary mb-4">{cfg.label} Performance</h2>
+          <div className="space-y-3">
           <div className="flex items-center justify-between py-2 border-b border-border-light">
             <span className="text-sm text-text-secondary">Points Earned</span>
             <span className="text-sm font-semibold text-text-primary">{coursePoints || 0}</span>
@@ -373,6 +439,7 @@ export default function StudentDetailPage({ uid, onBack }) {
             <span className="text-sm text-text-secondary">Accuracy</span>
             <span className="text-sm font-semibold text-text-primary">{courseAccuracy}%</span>
           </div>
+        </div>
         </div>
       </div>
     </div>
