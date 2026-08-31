@@ -1,0 +1,119 @@
+---
+title: Gamified Admin Panel — System Flowchart & Usage Flow
+---
+flowchart TD
+
+  %% ====================================================
+  %% THEME & STYLES
+  %% ====================================================
+  classDef stageBox fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#f8fafc,font-weight:bold
+  classDef nodeBase fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f1f5f9
+  classDef decision fill:#312e81,stroke:#818cf8,stroke-width:1.5px,color:#ffffff
+  classDef success fill:#064e3b,stroke:#10b981,stroke-width:1.5px,color:#ecfdf5
+  classDef failure fill:#881337,stroke:#f43f5e,stroke-width:1.5px,color:#ffe4e6
+  classDef action fill:#78350f,stroke:#f59e0b,stroke-width:1.5px,color:#fef3c7
+
+  %% ====================================================
+  %% STAGE 1: AUTHENTICATION & ONBOARDING
+  %% ====================================================
+  subgraph Stage1 ["Stage 1: Authentication & Onboarding"]
+    direction TB
+    A1["User Visits Admin Portal"]:::nodeBase --> A2{"Existing Auth Session?"}:::decision
+    
+    A2 -- "No Session" --> B1["Login / Sign-Up Portal"]:::nodeBase
+    A2 -- "Verified Session" --> NavEntry["Enter Admin Dashboard"]:::success
+    
+    %% Sign In Branch
+    B1 --> B2{"Select Auth Action"}:::decision
+    B2 -- "Sign In" --> C1["Enter Email & Password"]:::nodeBase
+    C1 --> C2{"Authenticate Credentials"}:::decision
+    C2 -- "Invalid" --> C3["Show Error Message"]:::failure --> B1
+    C2 -- "Valid" --> C4{"Check Account Status"}:::decision
+    C4 -- "Soft-Deleted / Inactive" --> C5["Deny Access"]:::failure
+    C4 -- "Active Lecturer" --> NavEntry
+    
+    %% Sign Up Branch
+    B2 -- "Sign Up" --> D1["Enter Details & Course Code"]:::nodeBase
+    D1 --> D2{"Validate Course Code"}:::decision
+    D2 -- "Invalid or Taken" --> D3["Show Registration Error"]:::failure --> B1
+    D2 -- "Valid Code" --> D4["Create Auth User & Generate OTP"]:::nodeBase
+    D4 --> D5["Store Hash in 'lecturer_verifications' & Send Email"]:::nodeBase
+    D5 --> D6["OTP Verification Screen"]:::nodeBase
+    
+    D6 --> D7{"Submit 6-Digit OTP"}:::decision
+    D7 -- "Invalid / Expired" --> D8["Show Error / Resend Option"]:::failure --> D6
+    D7 -- "Valid OTP" --> D9["Activate Lecturer Profile & Claim Course Code"]:::success
+    D9 --> NavEntry
+  end
+
+  %% ====================================================
+  %% STAGE 2: NAVIGATION & DASHBOARD HUB
+  %% ====================================================
+  subgraph Stage2 ["Stage 2: Main Navigation & Dashboard Hub"]
+    direction TB
+    NavEntry --> Hub["TopNav Navigation Shell"]:::stageBox
+    
+    Hub --> DashView["Dashboard Overview"]:::nodeBase
+    DashView --> DStat1["View Metrics: Enrolled Students, Pass Rate, Total Questions"]:::nodeBase
+    DashView --> DStat2["View Top-Performing Student Leaderboard"]:::nodeBase
+    DashView --> DStat3["Quick Actions: Create Question / Review Insights"]:::action
+  end
+
+  %% ====================================================
+  %% STAGE 3: CORE WORKFLOWS
+  %% ====================================================
+  subgraph Stage3 ["Stage 3: Core Lecturer Feature Workflows"]
+    direction TB
+
+    %% Workflow A: Question Management
+    subgraph WFA ["A. Question Bank Management"]
+      direction TB
+      Q1["Navigate to '#questions'"]:::nodeBase --> Q2["Browse / Search Course Questions"]:::nodeBase
+      Q2 --> Q3{"Action Choice"}:::decision
+      Q3 -- "Add Question" --> Q4["Fill Question, 4 Options, Correct Key & Explanation"]:::nodeBase
+      Q4 --> Q5["Sanitize & Save to Course Collection"]:::success
+      Q5 --> Q2
+      Q3 -- "Audit / Delete" --> Q6["Confirm Deletion of Outdated Question"]:::action
+      Q6 --> Q7["Remove Question Document"]:::failure
+      Q7 --> Q2
+    end
+
+    %% Workflow B: Student Performance Tracking
+    subgraph WFB ["B. Student Tracking & Diagnostics"]
+      direction TB
+      S1["Navigate to '#students'"]:::nodeBase --> S2["Search & Filter Enrolled Students"]:::nodeBase
+      S2 --> S3["Select Student Card"]:::action
+      S3 --> S4["View Student Detail (#student/:uid)"]:::nodeBase
+      S4 --> S5["Inspect Course Points, Accuracy & Current Streak"]:::nodeBase
+      S4 --> S6["Review Weaknesses: Questions Missed & Explanations"]:::nodeBase
+    end
+
+    %% Workflow C: AI Insights & PDF Generation
+    subgraph WFC ["C. AI Insights & Learning Resources"]
+      direction TB
+      I1["Navigate to '#insights'"]:::nodeBase --> I2["Fetch Incorrect Submissions from Firestore"]:::nodeBase
+      I2 --> I3["Aggregate Error Frequency per Question"]:::nodeBase
+      I3 --> I4["Trigger AI Analysis Engine"]:::action
+      I4 --> I5["Generate Targeted Study Guide & Drill Suggestions"]:::nodeBase
+      I5 --> I6["Export & Download Branded PDF Study Pack"]:::success
+    end
+
+    %% Workflow D: Profile & Account Lifecycle
+    subgraph WFD ["D. Account Settings & Security"]
+      direction TB
+      P1["Navigate to '#settings'"]:::nodeBase --> P2{"Account Action"}:::decision
+      P2 -- "Edit Info" --> P3["Update Display Name / Avatar"]:::nodeBase
+      P2 -- "Password" --> P4["Send Password Reset Email"]:::nodeBase
+      P2 -- "Soft Delete" --> P5["Confirm Account Deletion"]:::failure
+      P5 --> P6["Flag 'deleted: true' & Terminate Session"]:::failure
+      P2 -- "Sign Out" --> P7["Clear Auth Token & Return to Login"]:::action
+    end
+  end
+
+  %% ====================================================
+  %% FLOW CONNECTIONS ACROSS STAGES
+  %% ====================================================
+  Hub --> Q1
+  Hub --> S1
+  Hub --> I1
+  Hub --> P1

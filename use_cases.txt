@@ -1,0 +1,17 @@
+Gamified Admin Panel - Use Case Breakdown
+
+1. Actor: Lecturer
+   - Sign Up / Authenticate: Lecturers can register and log in to the system.
+   - Verify Identity: Lecturers must verify their account using an OTP and a valid Course Code.
+   - Claim Course Code: Lecturers claim a unique course code to associate themselves with a specific course (e.g., Computer Architecture, Computer Networking, Software Engineering).
+   - Create Questions: Lecturers can create multiple-choice questions for their claimed course, including 4 options, the correct answer, and an explanation.
+   - Manage Profile: Lecturers can update their profile or delete their account (soft delete).
+   - Generate Learning Resources: Lecturers can generate learning resources for their claimed course.
+   - Download Learning Resources: Lecturers can download the generated learning resources as PDF.
+   - View Course Statistics: Lecturers can view statistics for their claimed course.
+   - View Student Statistics: Lecturers can view statistics for their claimed course.
+   - Audit Questions: Lecturers can view all the questions related to the course and remove irrelevant ones if any.
+   
+   2. System Actions (Automated)
+   - OTP Generation & Expiration: The system handles generating OTP hashes, tracking verification attempts, and expiring tokens.
+   - Course Code Allocation: The system ensures course codes are unique and tracks when and by whom they are claimed.

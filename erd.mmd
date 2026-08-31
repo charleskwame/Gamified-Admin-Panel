@@ -1,0 +1,134 @@
+---
+title: Gamified Admin Panel — Firestore ERD
+---
+erDiagram
+
+  %% ─────────────────────────────────────────────
+  %% Firebase Auth (external, not a Firestore doc)
+  %% ─────────────────────────────────────────────
+
+  FIREBASE_AUTH {
+    string uid PK
+    string email
+    string displayName
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collection: lecturers
+  %% ─────────────────────────────────────────────
+
+  LECTURER {
+    string uid PK "doc id = Firebase Auth UID"
+    string displayName
+    string email
+    string photoURL
+    boolean emailVerified
+    string role "always lecturer"
+    string course "computer_architecture | computer_networking | software_engineering"
+    string claimedCourseCode "FK to COURSE_CODE.code"
+    timestamp createdAt
+    boolean deleted "soft-delete flag"
+    timestamp deletedAt
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collection: lecturer_verifications  (transient)
+  %% ─────────────────────────────────────────────
+
+  LECTURER_VERIFICATION {
+    string uid PK "doc id = Firebase Auth UID"
+    string email
+    string displayName
+    string otpHash "SHA hash of the OTP"
+    number expiresAt "Unix ms timestamp"
+    number attempts
+    string course
+    string courseCode "FK to COURSE_CODE.code"
+    timestamp createdAt
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collection: course_codes
+  %% ─────────────────────────────────────────────
+
+  COURSE_CODE {
+    string id PK "auto Firestore doc id"
+    string code "normalised invite code e.g. CA001"
+    string course "maps to a course key"
+    string claimedBy "FK to LECTURER.uid (nullable)"
+    timestamp claimedAt
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collection: users  (student profiles)
+  %% ─────────────────────────────────────────────
+
+  STUDENT {
+    string uid PK "doc id = Firebase Auth UID"
+    string displayName
+    string email
+    string role "any role that is not lecturer"
+    number score "global total score"
+    number streakNumber
+    number questionsAnswered "global total"
+    number computerArchitecturePoints
+    number caAnswered
+    number caCorrect
+    number computerNetworkingPoints
+    number cnAnswered
+    number cnCorrect
+    number softwareEngineeringPoints
+    number seAnswered
+    number seCorrect
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collections: computer_architecture_questions,
+  %%              computer_networking_questions,
+  %%              software_engineering_questions
+  %%   (modelled as a single QUESTION entity —
+  %%    the course field identifies the collection)
+  %% ─────────────────────────────────────────────
+
+  QUESTION {
+    string id PK "auto Firestore doc id"
+    string questionText
+    string options "array of 4 option strings"
+    string correctAnswer "a | b | c | d"
+    string explanation
+    string category "course label string"
+    string course "computer_architecture | computer_networking | software_engineering"
+    string createdBy "FK to LECTURER.uid"
+    timestamp createdAt
+  }
+
+  %% ─────────────────────────────────────────────
+  %% collections:
+  %%   computer_architecture_questions_gotten_incorrectly
+  %%   computer_networking_questions_gotten_incorrectly
+  %%   software_engineering_questions_gotten_incorrectly
+  %%   (one document per wrong-answer event)
+  %% ─────────────────────────────────────────────
+
+  INCORRECT_ANSWER {
+    string id PK "auto Firestore doc id"
+    string questionId "FK to QUESTION.id"
+    string studentId "FK to STUDENT.uid"
+    string course "computer_architecture | computer_networking | software_engineering"
+  }
+
+  %% ─────────────────────────────────────────────
+  %% Relationships
+  %% ─────────────────────────────────────────────
+
+  FIREBASE_AUTH ||--o| LECTURER              : "has lecturer profile"
+  FIREBASE_AUTH ||--o| STUDENT               : "has student profile"
+  FIREBASE_AUTH ||--o| LECTURER_VERIFICATION : "pending OTP verification"
+
+  COURSE_CODE   ||--o| LECTURER              : "claimed by (1 lecturer)"
+  COURSE_CODE   ||--o| LECTURER_VERIFICATION : "reserved during sign-up"
+
+  LECTURER      ||--o{ QUESTION              : "creates"
+
+  QUESTION      ||--o{ INCORRECT_ANSWER      : "recorded when answered wrong"
+  STUDENT       ||--o{ INCORRECT_ANSWER      : "generates on wrong answer"
