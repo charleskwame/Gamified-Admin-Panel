@@ -3,9 +3,10 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { Skeleton } from "../components/Skeleton";
-import { LightBulbIcon, RobotIcon } from "../components/Icons";
+import { LightBulbIcon, RobotIcon, BookOpenIcon, BoltIcon, MapPinIcon, ExclamationTriangleIcon, ChartBarIcon } from "../components/Icons";
 import { auditLog } from "../utils/security";
 import { generateAIInsights } from "../utils/aiInsights";
+import { exportLearningResourcesPdf } from "../utils/exportLearningResourcesPdf";
 
 const COURSE_COLLECTION = {
   computer_architecture: "computer_architecture_questions",
@@ -120,7 +121,28 @@ export default function InsightsPage() {
       const allQuestions = questionsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const incorrectEntries = incorrectSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-      const analysis = await generateAIInsights(course, allQuestions, incorrectEntries);
+      // Build question map for text lookup
+      const questionMap = {};
+      for (const q of allQuestions) {
+        const qId = q.id || q.questionId;
+        questionMap[qId] = q.questionText || q.correctAnswer || "";
+      }
+
+      // Aggregate wrong counts per question
+      const wrongCountMap = {};
+      for (const entry of incorrectEntries) {
+        const qId = entry.questionId || entry.id;
+        wrongCountMap[qId] = (wrongCountMap[qId] || 0) + 1;
+      }
+
+      // Build insights array expected by generateAIInsights(insights, course)
+      const insightsData = Object.entries(wrongCountMap).map(([qId, count]) => ({
+        questionId: qId,
+        questionText: questionMap[qId] || `Question ID: ${qId}`,
+        number_of_wrong: count,
+      })).sort((a, b) => b.number_of_wrong - a.number_of_wrong);
+
+      const analysis = await generateAIInsights(insightsData, course);
       setAIAnalysis(analysis);
     } catch (err) {
       console.error("AI analysis error:", err);
@@ -241,9 +263,8 @@ export default function InsightsPage() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`w-8 h-8 text-sm font-semibold rounded-lg transition-all ${
-                    p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
-                  }`}>
+                  className={`w-8 h-8 text-sm font-semibold rounded-lg transition-all ${p === page ? "bg-primary text-white" : "text-text-muted hover:bg-bg-base"
+                    }`}>
                   {p}
                 </button>
               );
@@ -282,14 +303,142 @@ export default function InsightsPage() {
                 <p className="text-sm text-text-secondary">Analyzing course data...</p>
               </div>
             ) : aiAnalysis ? (
-              <div>
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
-                    <span className="text-xs font-semibold text-emerald-600">Analysis Complete</span>
-                  </div>
-                  <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
+              <div className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                  <span className="text-xs font-semibold text-emerald-600">Analysis Complete</span>
                 </div>
+
+                {/* Summary Stats */}
+                {aiAnalysis.summary && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Total Questions", value: aiAnalysis.summary.totalQuestions },
+                      { label: "Total Wrong Answers", value: aiAnalysis.summary.totalWrongAnswers },
+                      { label: "Avg Wrong / Question", value: aiAnalysis.summary.averageWrongPerQuestion },
+                      { label: "High Priority", value: aiAnalysis.summary.highPriorityCount },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="bg-bg-base border border-border rounded-lg p-3">
+                        <p className="text-xs text-text-muted mb-0.5">{label}</p>
+                        <p className="text-lg font-bold text-text-primary">{value ?? "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Priority Topics */}
+                {aiAnalysis.priorityTopics?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary mb-2 flex items-center gap-1.5">
+                      <MapPinIcon className="w-4 h-4 text-primary" />
+                      Priority Topics
+                    </h3>
+                    <div className="space-y-2">
+                      {aiAnalysis.priorityTopics.map((t, i) => (
+                        <div key={i} className="flex items-center justify-between bg-bg-base border border-border rounded-lg px-3 py-2">
+                          <span className="text-sm text-text-primary font-medium">{t.topic}</span>
+                          <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t.count} wrong</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Items */}
+                {aiAnalysis.actionItems?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary mb-2 flex items-center gap-1.5">
+                      <BoltIcon className="w-4 h-4 text-primary" />
+                      Action Items
+                    </h3>
+                    <div className="space-y-3">
+                      {aiAnalysis.actionItems.map((item, i) => (
+                        <div key={i} className="bg-bg-base border border-border rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            {item.type === "immediate" ? (
+                              <ExclamationTriangleIcon className="w-4 h-4 text-red-500 shrink-0" />
+                            ) : item.type === "focus_area" ? (
+                              <ChartBarIcon className="w-4 h-4 text-amber-500 shrink-0" />
+                            ) : item.type === "misconception" ? (
+                              <ExclamationTriangleIcon className="w-4 h-4 text-orange-500 shrink-0" />
+                            ) : (
+                              <BoltIcon className="w-4 h-4 text-primary shrink-0" />
+                            )}
+                            <span className="text-sm font-semibold text-text-primary">{item.title}</span>
+                            {item.type && (
+                              <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full capitalize">
+                                {item.type.replace(/_/g, " ")}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-text-secondary mb-2">{item.description}</p>
+                          {item.recommendations?.length > 0 && (
+                            <ul className="space-y-1">
+                              {item.recommendations.map((rec, j) => (
+                                <li key={j} className="text-xs text-text-muted flex gap-1.5 items-start">
+                                  <svg className="w-3 h-3 text-primary mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                  </svg>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Learning Materials */}
+                {aiAnalysis.learningMaterials?.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-bold text-text-primary flex items-center gap-1.5">
+                        <BookOpenIcon className="w-4 h-4 text-primary" />
+                        Learning Resources
+                      </h3>
+                      <button
+                        onClick={() =>
+                          exportLearningResourcesPdf(
+                            aiAnalysis.learningMaterials,
+                            course,
+                            userData?.displayName || "Lecturer"
+                          )
+                        }
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-primary border border-primary/30 bg-primary/5 rounded-lg hover:bg-primary/10 transition-all">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Export PDF
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {aiAnalysis.learningMaterials.map((mat, i) => (
+                        <a
+                          key={i}
+                          href={mat.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block bg-bg-base border border-border rounded-lg p-3 hover:border-primary/40 transition-all group">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <span className="text-sm font-semibold text-text-primary group-hover:text-primary transition-colors">{mat.title}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${mat.priority === "high" ? "bg-red-50 text-red-600" :
+                              mat.priority === "medium" ? "bg-amber-50 text-amber-600" :
+                                "bg-emerald-50 text-emerald-600"
+                              }`}>{mat.priority}</span>
+                          </div>
+                          <p className="text-xs text-text-muted mb-1">{mat.topic} · {mat.resourceType}</p>
+                          <p className="text-xs text-text-secondary">{mat.description}</p>
+                        </a>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                      <p className="text-xs text-amber-900"><strong>Disclaimer:</strong> The Learning Resources are AI generated and may not be accurate. Please verify the resources before sharing them with the students.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
