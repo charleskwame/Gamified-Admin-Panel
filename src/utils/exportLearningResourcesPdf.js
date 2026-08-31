@@ -164,13 +164,13 @@ export function exportLearningResourcesPdf(materials, course, lecturerName) {
     const desc = mat.description || "";
     const url = mat.url || "";
 
-    // Pre-wrap text to know required height
+    // Pre-wrap text to know required height (CW - 14 left indent - 8 right padding)
     doc.setFontSize(10);
-    const titleLines = doc.splitTextToSize(title, CW - 14);
+    const titleLines = doc.splitTextToSize(title, CW - 22);
     doc.setFontSize(8.5);
-    const descLines = doc.splitTextToSize(desc, CW - 14);
+    const descLines = doc.splitTextToSize(desc, CW - 22);
     doc.setFontSize(7.5);
-    const urlLines = url ? doc.splitTextToSize(url, CW - 14) : [];
+    const urlLines = url ? doc.splitTextToSize(url, CW - 22) : [];
 
     const cardH =
       4 +                              // top padding
@@ -200,15 +200,16 @@ export function exportLearningResourcesPdf(materials, course, lecturerName) {
     setColor(doc, MUTED);
     doc.text(String(idx + 1).padStart(2, "0"), ML + 6.5, y + 7);
 
-    // ── Priority badge (top-right) ─────────────────────────────────────────
+    // ── Priority badge (top-right, 6mm from card right edge) ──────────────
     const badgeLabel = priority.toUpperCase();
     doc.setFontSize(6.5);
     doc.setFont("helvetica", "bold");
     doc.setFillColor(pColor.r, pColor.g, pColor.b);
     const badgeW = doc.getTextWidth(badgeLabel) + 5;
-    doc.roundedRect(ML + CW - badgeW - 2, y + 3, badgeW, 5, 1, 1, "F");
+    const badgeX = ML + CW - badgeW - 6;   // 6mm from right edge
+    doc.roundedRect(badgeX, y + 3, badgeW, 5, 1, 1, "F");
     setColor(doc, WHITE);
-    doc.text(badgeLabel, ML + CW - badgeW / 2 - 2, y + 7, { align: "center" });
+    doc.text(badgeLabel, badgeX + badgeW / 2, y + 7, { align: "center" });
 
     // ── Title ──────────────────────────────────────────────────────────────
     let cy = y + 6;
