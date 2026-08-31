@@ -167,6 +167,20 @@ export function AuthProvider({ children }) {
         };
       }
 
+      // Check for pending verification (both signup and login) FIRST
+      try {
+        const verifDocRef = doc(db, "lecturer_verifications", firebaseUser.uid);
+        const verifSnap = await getDoc(verifDocRef);
+        if (verifSnap.exists()) {
+          return {
+            needsVerification: true,
+            pendingEmail: verifSnap.data().email || firebaseUser.email || "",
+          };
+        }
+      } catch (verifErr) {
+        console.warn("Pending verification lookup failed:", verifErr);
+      }
+
       const resolved = await resolveLecturer(firebaseUser.uid);
       if (resolved) {
         if (resolved.data.role !== "lecturer") {
@@ -186,21 +200,6 @@ export function AuthProvider({ children }) {
           await updateDoc(resolved.docRef, { emailVerified: true });
         }
         return { ...resolved.data, emailVerified: true };
-      }
-
-      // No lecturer profile yet. If a sign-up verification is still pending
-      // (OTP not yet entered), route the user back to the OTP screen.
-      try {
-        const verifDocRef = doc(db, "lecturer_verifications", firebaseUser.uid);
-        const verifSnap = await getDoc(verifDocRef);
-        if (verifSnap.exists()) {
-          return {
-            needsVerification: true,
-            pendingEmail: verifSnap.data().email || firebaseUser.email || "",
-          };
-        }
-      } catch (verifErr) {
-        console.warn("Pending verification lookup failed:", verifErr);
       }
 
       const err = new Error(
@@ -391,6 +390,21 @@ export function AuthProvider({ children }) {
         throw new Error("Incorrect verification code. Please try again.");
       }
 
+      await deleteDoc(verifDoc);
+
+      if (rec.type === "login") {
+        // If it's a login verification, just fetch the existing profile
+        const resolved = await resolveLecturer(uid);
+        if (!resolved) {
+          throw new Error("Lecturer profile not found.");
+        }
+        setNeedsVerification(false);
+        setPendingEmail("");
+        setDevOtp(null);
+        setUserData(resolved.data);
+        return resolved.data;
+      }
+
       // OTP correct — create the lecturer profile with the course mapped from
       // the course code recorded on the verification document.
       const profile = {
@@ -404,7 +418,6 @@ export function AuthProvider({ children }) {
         createdAt: serverTimestamp(),
       };
       await setDoc(doc(db, "lecturers", uid), profile);
-      await deleteDoc(verifDoc);
 
       setNeedsVerification(false);
       setPendingEmail("");
@@ -412,7 +425,7 @@ export function AuthProvider({ children }) {
       setUserData(profile);
       return profile;
     },
-    [user]
+    [user, resolveLecturer]
   );
 
   /** Send the lecturer a fresh OTP (also resets the attempts counter). */
@@ -446,11 +459,42 @@ export function AuthProvider({ children }) {
   const signInWithEmail = useCallback(async (email, password) => {
     setAccessMessage(null);
     try {
-      await signInWithEmailAndPassword(auth, (email || "").trim().toLowerCase(), password);
+      const cred = await signInWithEmailAndPassword(auth, (email || "").trim().toLowerCase(), password);
+      
+      const uid = cred.user.uid;
+      const mail = cred.user.email;
+      
+      // Look up existing lecturer to get display name if possible
+      const resolved = await resolveLecturer(uid);
+      const displayName = resolved?.data?.displayName || mail?.split("@")[0] || "Lecturer";
+
+      // Create a login verification document
+      const otp = generateOtp();
+      const otpHash = await hashOtp(otp);
+      
+      await setDoc(doc(db, "lecturer_verifications", uid), {
+        email: mail,
+        displayName: displayName,
+        otpHash,
+        expiresAt: Date.now() + EMAIL_OTP_LIFETIME_MS,
+        attempts: 0,
+        type: "login",
+        createdAt: serverTimestamp(),
+      });
+      
+      await sendOtpEmail({
+        toEmail: mail,
+        toName: displayName,
+        otpCode: otp,
+      });
+      
+      setPendingEmail(mail);
+      setDevOtp(EMAILJS_CONFIGURED ? null : otp);
+      setNeedsVerification(true);
     } catch (err) {
       throw new Error(friendlyError(err), { cause: err });
     }
-  }, []);
+  }, [resolveLecturer]);
 
   const logout = useCallback(async () => {
     setAccessMessage(null);

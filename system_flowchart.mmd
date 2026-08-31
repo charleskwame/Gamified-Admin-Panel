@@ -30,7 +30,11 @@ flowchart TD
     C2 -- "Invalid" --> C3["Show Error Message"]:::failure --> B1
     C2 -- "Valid" --> C4{"Check Account Status"}:::decision
     C4 -- "Soft-Deleted / Inactive" --> C5["Deny Access"]:::failure
-    C4 -- "Active Lecturer" --> NavEntry
+    C4 -- "Active Lecturer" --> C6["Generate & Send OTP"]:::nodeBase
+    C6 --> C7["OTP Verification Screen"]:::nodeBase
+    C7 --> C8{"Submit 6-Digit OTP"}:::decision
+    C8 -- "Invalid / Expired" --> C9["Show Error / Resend Option"]:::failure --> C7
+    C8 -- "Valid OTP" --> NavEntry
     
     %% Sign Up Branch
     B2 -- "Sign Up" --> D1["Enter Details & Course Code"]:::nodeBase
