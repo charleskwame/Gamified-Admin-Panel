@@ -114,6 +114,12 @@ export function AuthProvider({ children }) {
   // in onAuthStateChanged when the user is created but Firestore docs aren't yet.
   const isSigningUpRef = useRef(false);
   const signupEmailRef = useRef("");
+  // Ref to track an in-progress email+password sign-in. Like the sign-up ref it
+  // stops onAuthStateChanged from resolving an existing lecturer profile straight
+  // to the dashboard before the login OTP document has been persisted. Without it
+  // users could skip (or briefly see) the dashboard and only be bounced back to
+  // the OTP screen once a later auth event re-checks and finds the document.
+  const isSigningInRef = useRef(false);
 
   // Resolve a lecturer's profile. Newer builds store the profile in the
   // `lecturers` collection, older builds stored lecturers inside `users` with
@@ -160,7 +166,7 @@ export function AuthProvider({ children }) {
   //  - otherwise (no profile)      -> access denied (must complete sign-up)
   const ensureLecturerProfile = useCallback(
     async (firebaseUser) => {
-      if (isSigningUpRef.current) {
+      if (isSigningUpRef.current || isSigningInRef.current) {
         return {
           needsVerification: true,
           pendingEmail: signupEmailRef.current || firebaseUser.email || "",
@@ -458,41 +464,57 @@ export function AuthProvider({ children }) {
   /** Sign in with email + password for existing lecturer accounts. */
   const signInWithEmail = useCallback(async (email, password) => {
     setAccessMessage(null);
+    const mail = (email || "").trim().toLowerCase();
+
+    // Flag the login-OTP flow as in-progress BEFORE Firebase resolves so the
+    // auth-state listener (ensureLecturerProfile) never resolves an existing
+    // lecturer profile to the dashboard ahead of the OTP document being written.
+    isSigningInRef.current = true;
     try {
-      const cred = await signInWithEmailAndPassword(auth, (email || "").trim().toLowerCase(), password);
-      
+      const cred = await signInWithEmailAndPassword(auth, mail, password);
       const uid = cred.user.uid;
-      const mail = cred.user.email;
-      
-      // Look up existing lecturer to get display name if possible
+
+      // Look up the existing lecturer to personalise the email (best-effort).
       const resolved = await resolveLecturer(uid);
       const displayName = resolved?.data?.displayName || mail?.split("@")[0] || "Lecturer";
 
-      // Create a login verification document
       const otp = generateOtp();
       const otpHash = await hashOtp(otp);
-      
+
+      // Persist the login verification document as early as possible so that
+      // even if onAuthStateChanged re-runs after the in-flight flag is cleared,
+      // it still sees the pending verification and keeps the OTP screen up.
       await setDoc(doc(db, "lecturer_verifications", uid), {
         email: mail,
-        displayName: displayName,
+        displayName,
         otpHash,
         expiresAt: Date.now() + EMAIL_OTP_LIFETIME_MS,
         attempts: 0,
         type: "login",
         createdAt: serverTimestamp(),
       });
-      
-      await sendOtpEmail({
-        toEmail: mail,
-        toName: displayName,
-        otpCode: otp,
-      });
-      
+
+      // Route to the OTP screen as soon as the document is in place; do not
+      // wait for the email to send before updating the UI.
       setPendingEmail(mail);
       setDevOtp(EMAILJS_CONFIGURED ? null : otp);
       setNeedsVerification(true);
+
+      // Best-effort delivery. If it fails the user stays on the OTP screen and
+      // can still use "Resend code".
+      try {
+        await sendOtpEmail({
+          toEmail: mail,
+          toName: displayName,
+          otpCode: otp,
+        });
+      } catch (emailErr) {
+        setAccessMessage(friendlyError(emailErr));
+      }
     } catch (err) {
       throw new Error(friendlyError(err), { cause: err });
+    } finally {
+      isSigningInRef.current = false;
     }
   }, [resolveLecturer]);
 
