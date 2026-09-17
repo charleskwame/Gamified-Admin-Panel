@@ -5,30 +5,14 @@ import {
   deleteUser,
   onAuthStateChanged,
   reauthenticateWithCredential,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { AuthContext } from "./AuthContext";
-import {
-  EMAIL_OTP_LIFETIME_MS,
-  MAX_OTP_ATTEMPTS,
-  generateOtp,
-  hashOtp,
-  isOtpValid,
-} from "../utils/otp";
+import { EMAIL_OTP_LIFETIME_MS, MAX_OTP_ATTEMPTS, generateOtp, hashOtp, isOtpValid } from "../utils/otp";
 import { EMAILJS_CONFIGURED, sendOtpEmail } from "../utils/email";
 import { auditLog } from "../utils/security";
 
@@ -62,11 +46,7 @@ function friendlyError(err) {
   if (code.includes("auth/weak-password")) {
     return "Password is too weak. Please use at least 6 characters.";
   }
-  if (
-    code.includes("auth/user-not-found") ||
-    code.includes("auth/wrong-password") ||
-    code.includes("auth/invalid-credential")
-  ) {
+  if (code.includes("auth/user-not-found") || code.includes("auth/wrong-password") || code.includes("auth/invalid-credential")) {
     return "Incorrect email or password.";
   }
   if (code.includes("auth/too-many-requests")) {
@@ -86,10 +66,10 @@ function friendlyError(err) {
     return `Email service error: ${err.text}`;
   }
 
-  if (err && typeof err === 'object') {
+  if (err && typeof err === "object") {
     try {
       return `Unexpected error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`;
-    } catch (e) {
+    } catch {
       return "An unexpected error has occurred. Please try again.";
     }
   }
@@ -208,13 +188,11 @@ export function AuthProvider({ children }) {
         return { ...resolved.data, emailVerified: true };
       }
 
-      const err = new Error(
-        "Your account is not set up yet. Please complete sign-up with your email and course code."
-      );
+      const err = new Error("Your account is not set up yet. Please complete sign-up with your email and course code.");
       err.accessDenied = true;
       throw err;
     },
-    [resolveLecturer]
+    [resolveLecturer],
   );
 
   useEffect(() => {
@@ -320,11 +298,7 @@ export function AuthProvider({ children }) {
 
       try {
         // Reserve the code so another lecturer cannot claim it at the same time.
-        await setDoc(
-          match.docRef,
-          { ...match.data, claimedBy: uid, claimedAt: serverTimestamp() },
-          { merge: true }
-        );
+        await setDoc(match.docRef, { ...match.data, claimedBy: uid, claimedAt: serverTimestamp() }, { merge: true });
 
         const otp = generateOtp();
         const otpHash = await hashOtp(otp);
@@ -368,7 +342,7 @@ export function AuthProvider({ children }) {
         isSigningUpRef.current = false;
       }
     },
-    [findCourseCode]
+    [findCourseCode],
   );
 
   /** Sign-up step 2: check the OTP and create the lecturer profile. */
@@ -431,7 +405,7 @@ export function AuthProvider({ children }) {
       setUserData(profile);
       return profile;
     },
-    [user, resolveLecturer]
+    [user, resolveLecturer],
   );
 
   /** Send the lecturer a fresh OTP (also resets the attempts counter). */
@@ -462,61 +436,76 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   /** Sign in with email + password for existing lecturer accounts. */
-  const signInWithEmail = useCallback(async (email, password) => {
-    setAccessMessage(null);
-    const mail = (email || "").trim().toLowerCase();
+  const signInWithEmail = useCallback(
+    async (email, password) => {
+      setAccessMessage(null);
+      const mail = (email || "").trim().toLowerCase();
 
-    // Flag the login-OTP flow as in-progress BEFORE Firebase resolves so the
-    // auth-state listener (ensureLecturerProfile) never resolves an existing
-    // lecturer profile to the dashboard ahead of the OTP document being written.
-    isSigningInRef.current = true;
-    try {
-      const cred = await signInWithEmailAndPassword(auth, mail, password);
-      const uid = cred.user.uid;
-
-      // Look up the existing lecturer to personalise the email (best-effort).
-      const resolved = await resolveLecturer(uid);
-      const displayName = resolved?.data?.displayName || mail?.split("@")[0] || "Lecturer";
-
-      const otp = generateOtp();
-      const otpHash = await hashOtp(otp);
-
-      // Persist the login verification document as early as possible so that
-      // even if onAuthStateChanged re-runs after the in-flight flag is cleared,
-      // it still sees the pending verification and keeps the OTP screen up.
-      await setDoc(doc(db, "lecturer_verifications", uid), {
-        email: mail,
-        displayName,
-        otpHash,
-        expiresAt: Date.now() + EMAIL_OTP_LIFETIME_MS,
-        attempts: 0,
-        type: "login",
-        createdAt: serverTimestamp(),
-      });
-
-      // Route to the OTP screen as soon as the document is in place; do not
-      // wait for the email to send before updating the UI.
-      setPendingEmail(mail);
-      setDevOtp(EMAILJS_CONFIGURED ? null : otp);
-      setNeedsVerification(true);
-
-      // Best-effort delivery. If it fails the user stays on the OTP screen and
-      // can still use "Resend code".
+      // Flag the login-OTP flow as in-progress BEFORE Firebase resolves so the
+      // auth-state listener (ensureLecturerProfile) never resolves an existing
+      // lecturer profile to the dashboard ahead of the OTP document being written.
+      isSigningInRef.current = true;
       try {
-        await sendOtpEmail({
-          toEmail: mail,
-          toName: displayName,
-          otpCode: otp,
+        const cred = await signInWithEmailAndPassword(auth, mail, password);
+        const uid = cred.user.uid;
+
+        // Look up the existing lecturer to personalise the email (best-effort).
+        const resolved = await resolveLecturer(uid);
+        const displayName = resolved?.data?.displayName || mail?.split("@")[0] || "Lecturer";
+
+        const otp = generateOtp();
+        const otpHash = await hashOtp(otp);
+
+        // Persist the login verification document as early as possible so that
+        // even if onAuthStateChanged re-runs after the in-flight flag is cleared,
+        // it still sees the pending verification and keeps the OTP screen up.
+        await setDoc(doc(db, "lecturer_verifications", uid), {
+          email: mail,
+          displayName,
+          otpHash,
+          expiresAt: Date.now() + EMAIL_OTP_LIFETIME_MS,
+          attempts: 0,
+          type: "login",
+          createdAt: serverTimestamp(),
         });
-      } catch (emailErr) {
-        setAccessMessage(friendlyError(emailErr));
+
+        // Route to the OTP screen as soon as the document is in place; do not
+        // wait for the email to send before updating the UI.
+        setPendingEmail(mail);
+        setDevOtp(EMAILJS_CONFIGURED ? null : otp);
+        setNeedsVerification(true);
+
+        // Best-effort delivery. If it fails the user stays on the OTP screen and
+        // can still use "Resend code".
+        try {
+          await sendOtpEmail({
+            toEmail: mail,
+            toName: displayName,
+            otpCode: otp,
+          });
+        } catch (emailErr) {
+          setAccessMessage(friendlyError(emailErr));
+        }
+      } catch (err) {
+        throw new Error(friendlyError(err), { cause: err });
+      } finally {
+        isSigningInRef.current = false;
       }
+    },
+    [resolveLecturer],
+  );
+
+  /** Send a Firebase-managed password reset email to an existing account. */
+  const sendPasswordReset = useCallback(async (email) => {
+    const mail = (email || "").trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(mail)) throw new Error("Please enter a valid email address.");
+
+    try {
+      await sendPasswordResetEmail(auth, mail);
     } catch (err) {
       throw new Error(friendlyError(err), { cause: err });
-    } finally {
-      isSigningInRef.current = false;
     }
-  }, [resolveLecturer]);
+  }, []);
 
   const logout = useCallback(async () => {
     setAccessMessage(null);
@@ -587,10 +576,7 @@ export function AuthProvider({ children }) {
       // The profile is already soft-deleted, so the account is safe even if
       // the auth deletion fails — surface a clear message and let the
       // deleted-profile guard block any further sign-ins.
-      throw new Error(
-        "Your account has been deactivated, but the final login removal failed. Please contact support.",
-        { cause: err }
-      );
+      throw new Error("Your account has been deactivated, but the final login removal failed. Please contact support.", { cause: err });
     }
 
     setAccessMessage(null);
@@ -613,12 +599,12 @@ export function AuthProvider({ children }) {
         devOtp,
         signUpLecturer,
         signInWithEmail,
+        sendPasswordReset,
         verifyOtp,
         resendOtp,
         logout,
         deleteAccount,
-      }}
-    >
+      }}>
       {children}
     </AuthContext.Provider>
   );

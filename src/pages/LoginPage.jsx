@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
-
-
 function ErrorBanner({ message }) {
   if (!message) return null;
   return (
@@ -11,6 +9,18 @@ function ErrorBanner({ message }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <p className="text-sm font-medium text-red-700">{message}</p>
+    </div>
+  );
+}
+
+function SuccessBanner({ message }) {
+  if (!message) return null;
+  return (
+    <div className="bg-green-50 border border-green-200 px-4 py-3 flex items-start gap-3 rounded-lg">
+      <svg className="w-5 h-5 text-green-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      <p className="text-sm font-medium text-green-700">{message}</p>
     </div>
   );
 }
@@ -29,16 +39,12 @@ const inputClass =
   "w-full px-3 py-2 border border-border text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors rounded-lg";
 
 export default function LoginPage() {
-  const {
-    accessMessage,
-    signUpLecturer,
-    signInWithEmail,
+  const { accessMessage, signUpLecturer, signInWithEmail, sendPasswordReset } = useAuth();
 
-  } = useAuth();
-
-  const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup"
+  const [authMode, setAuthMode] = useState("signin"); // "signin" | "signup" | "reset"
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   // Sign-in fields
   const [email, setEmail] = useState("");
@@ -54,6 +60,7 @@ export default function LoginPage() {
   const switchMode = (mode) => {
     setAuthMode(mode);
     setError("");
+    setResetSent(false);
   };
 
   const handleSignIn = async (e) => {
@@ -86,7 +93,20 @@ export default function LoginPage() {
     }
   };
 
-
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setError("");
+    setResetSent(false);
+    setBusy(true);
+    try {
+      await sendPasswordReset(email);
+      setResetSent(true);
+    } catch (err) {
+      setError(err?.message || "Unable to send the password reset email. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // Sign in / Sign up
@@ -97,32 +117,64 @@ export default function LoginPage() {
         <BrandHeader />
 
         <div className="bg-surface border border-border p-8 space-y-5 rounded-xl">
-          <div className="grid grid-cols-2 gap-1 bg-bg-base p-1 rounded-lg">
-            <button
-              type="button"
-              onClick={() => switchMode("signin")}
-              className={`py-2 text-sm font-bold rounded-md transition-colors ${authMode === "signin" ? "bg-surface text-text-primary shadow-sm" : "text-text-muted"
+          {authMode !== "reset" && (
+            <div className="grid grid-cols-2 gap-1 bg-bg-base p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className={`py-2 text-sm font-bold rounded-md transition-colors ${
+                  authMode === "signin" ? "bg-surface text-text-primary shadow-sm" : "text-text-muted"
                 }`}>
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode("signup")}
-              className={`py-2 text-sm font-bold rounded-md transition-colors ${authMode === "signup" ? "bg-surface text-text-primary shadow-sm" : "text-text-muted"
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode("signup")}
+                className={`py-2 text-sm font-bold rounded-md transition-colors ${
+                  authMode === "signup" ? "bg-surface text-text-primary shadow-sm" : "text-text-muted"
                 }`}>
-              Sign Up
-            </button>
-          </div>
+                Sign Up
+              </button>
+            </div>
+          )}
 
           {displayError && <ErrorBanner message={displayError} />}
+          {resetSent && <SuccessBanner message="If an account exists for that email, a password reset link is on its way." />}
 
-          {authMode === "signin" ? (
+          {authMode === "reset" ? (
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary">Reset your password</h2>
+                <p className="text-sm text-text-muted mt-1">
+                  Enter your lecturer account email and we&apos;ll send you a link to choose a new password.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Email address</label>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full bg-primary text-white text-sm font-bold py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                {busy ? "Sending reset link..." : "Send Reset Link"}
+              </button>
+              <button type="button" onClick={() => switchMode("signin")} className="w-full text-sm font-semibold text-primary hover:underline">
+                Back to sign in
+              </button>
+            </form>
+          ) : authMode === "signin" ? (
             /* ---------------------------------- Sign In ---------------------------------- */
             <form onSubmit={handleSignIn} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Email address
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Email address</label>
                 <input
                   type="email"
                   autoComplete="email"
@@ -133,9 +185,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Password
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Password</label>
                 <input
                   type="password"
                   autoComplete="current-password"
@@ -158,14 +208,15 @@ export default function LoginPage() {
                   "Sign In"
                 )}
               </button>
+              <button type="button" onClick={() => switchMode("reset")} className="w-full text-sm font-semibold text-primary hover:underline">
+                Forgot your password?
+              </button>
             </form>
           ) : (
             /* --------------------------------- Sign Up --------------------------------- */
             <form onSubmit={handleSignUp} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Full name
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Full name</label>
                 <input
                   type="text"
                   autoComplete="name"
@@ -176,9 +227,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Email address
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Email address</label>
                 <input
                   type="email"
                   autoComplete="email"
@@ -189,9 +238,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Course code
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Course code</label>
                 <input
                   type="text"
                   autoComplete="off"
@@ -201,14 +248,11 @@ export default function LoginPage() {
                   className={`${inputClass} font-mono uppercase tracking-widest`}
                 />
                 <p className="text-xs text-text-muted mt-1.5">
-                  Enter the unique course code provided to you. It links your account to the
-                  course you teach.
+                  Enter the unique course code provided to you. It links your account to the course you teach.
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Password
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Password</label>
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -219,9 +263,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-text-primary mb-1.5">
-                  Confirm password
-                </label>
+                <label className="block text-sm font-semibold text-text-primary mb-1.5">Confirm password</label>
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -248,8 +290,8 @@ export default function LoginPage() {
           )}
 
           <p className="text-xs text-text-muted leading-relaxed text-center">
-            New lecturers: sign up with any email address and the course code provided to you.
-            After signing up you will receive a verification code to activate your dashboard.
+            New lecturers: sign up with any email address and the course code provided to you. After signing up you will receive a verification code
+            to activate your dashboard.
           </p>
         </div>
       </div>
