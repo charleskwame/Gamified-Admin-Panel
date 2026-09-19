@@ -76,8 +76,9 @@ function normalizeHistoryEntry(snapshot) {
   };
 }
 
-function PerformanceHistoryChart({ history, loading, error }) {
-  const averageScore = history.length > 0 ? history.reduce((total, session) => total + session.score, 0) / history.length : 0;
+function PerformanceHistoryChart({ history, subjectLabel, loading, error }) {
+  const subjectHistory = subjectLabel ? history.filter((session) => session.category === subjectLabel) : history;
+  const averageScore = subjectHistory.length > 0 ? subjectHistory.reduce((total, session) => total + session.score, 0) / subjectHistory.length : 0;
   const averageColor = averageScore >= 5 ? "#059669" : "#DC2626";
 
   return (
@@ -85,7 +86,7 @@ function PerformanceHistoryChart({ history, loading, error }) {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <h2 className="text-base font-bold text-text-primary">Session Performance History</h2>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary sm:justify-end">
-          {history.length > 0 && <span className="font-bold text-text-primary">Average: {averageScore.toFixed(1)}/10</span>}
+          {subjectHistory.length > 0 && <span className="font-bold text-text-primary">Average: {averageScore.toFixed(1)}/10</span>}
           <span className="font-semibold text-emerald-600">↑ Above 5: good average</span>
           <span className="font-semibold text-amber-600">↓ Below 5: needs improvement</span>
         </div>
@@ -94,11 +95,11 @@ function PerformanceHistoryChart({ history, loading, error }) {
         <div className="flex items-center justify-center h-64 text-text-muted text-sm">Loading session history...</div>
       ) : error ? (
         <div className="flex items-center justify-center h-64 text-text-muted text-sm">Session history is unavailable right now.</div>
-      ) : history.length === 0 ? (
+      ) : subjectHistory.length === 0 ? (
         <div className="flex items-center justify-center h-64 text-text-muted text-sm">No completed sessions yet.</div>
       ) : (
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={history} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
+          <LineChart data={subjectHistory} margin={{ top: 8, right: 12, left: 0, bottom: 24 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
             <XAxis
               dataKey="displayTime"
@@ -320,7 +321,7 @@ export default function StudentDetailPage({ uid, onBack }) {
           </div>
         </div>
 
-        <PerformanceHistoryChart history={history} loading={historyLoading} error={historyError} />
+        <PerformanceHistoryChart history={history} subjectLabel={cfg?.label} loading={historyLoading} error={historyError} />
 
         {/* Charts */}
         {coursePoints.length > 0 && (
@@ -463,7 +464,7 @@ export default function StudentDetailPage({ uid, onBack }) {
         </div>
       </div>
 
-      <PerformanceHistoryChart history={history} loading={historyLoading} error={historyError} />
+      <PerformanceHistoryChart history={history} subjectLabel={cfg?.label} loading={historyLoading} error={historyError} />
 
       {/* Course Scoped Performance */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
