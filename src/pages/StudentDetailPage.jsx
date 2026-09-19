@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, LineChart, Line, CartesianGrid } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  LineChart,
+  Line,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 import { Skeleton } from "../components/Skeleton";
 import { FireIcon } from "../components/Icons";
 import { useAuth } from "../context/AuthContext";
@@ -65,7 +79,13 @@ function normalizeHistoryEntry(snapshot) {
 function PerformanceHistoryChart({ history, loading, error }) {
   return (
     <div className="bg-surface border border-border p-6 rounded-xl">
-      <h2 className="text-base font-bold text-text-primary mb-4">Session Performance History</h2>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <h2 className="text-base font-bold text-text-primary">Session Performance History</h2>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary sm:justify-end">
+          <span className="font-semibold text-emerald-600">↑ Above 5: good average</span>
+          <span className="font-semibold text-amber-600">↓ Below 5: needs improvement</span>
+        </div>
+      </div>
       {loading ? (
         <div className="flex items-center justify-center h-64 text-text-muted text-sm">Loading session history...</div>
       ) : error ? (
@@ -91,6 +111,13 @@ function PerformanceHistoryChart({ history, loading, error }) {
               tick={{ fontSize: 11, fill: "#6B7A8A" }}
               tickLine={false}
               axisLine={false}
+            />
+            <ReferenceLine
+              y={5}
+              stroke="#D97706"
+              strokeDasharray="6 4"
+              strokeWidth={1.5}
+              label={{ value: "Average 5", position: "insideTopRight", fill: "#B45309", fontSize: 11 }}
             />
             <Tooltip
               contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
