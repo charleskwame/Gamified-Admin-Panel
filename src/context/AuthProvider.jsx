@@ -5,7 +5,6 @@ import {
   deleteUser,
   onAuthStateChanged,
   reauthenticateWithCredential,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -495,13 +494,19 @@ export function AuthProvider({ children }) {
     [resolveLecturer],
   );
 
-  /** Send a Firebase-managed password reset email to an existing account. */
+  /** Ask the trusted backend to generate and email the password reset link. */
   const sendPasswordReset = useCallback(async (email) => {
     const mail = (email || "").trim().toLowerCase();
     if (!EMAIL_PATTERN.test(mail)) throw new Error("Please enter a valid email address.");
 
     try {
-      await sendPasswordResetEmail(auth, mail);
+      const response = await fetch("/api/send-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mail }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Unable to send the password reset email.");
     } catch (err) {
       throw new Error(friendlyError(err), { cause: err });
     }

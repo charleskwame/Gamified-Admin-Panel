@@ -1,5 +1,21 @@
 # React + Vite
 
+## Password reset email setup
+
+Password reset emails are requested by the Cloudflare Pages Function in
+`functions/api/send-password-reset.js`. It uses Firebase Authentication's
+REST API, so it works without Firebase Cloud Functions or the Blaze plan. Add
+these variables in Cloudflare Pages Settings > Variables and Secrets:
+
+- `FIREBASE_WEB_API_KEY`: the Firebase web API key
+- `PASSWORD_RESET_CONTINUE_URL`: `https://gamified-admin-panel.pages.dev`
+
+Add `gamified-admin-panel.pages.dev` to Firebase Authentication's authorized
+domains. Cloudflare deploys the Pages Function automatically from the
+`functions/` directory. This path uses Firebase's built-in reset email; the
+EmailJS template cannot receive the generated reset link without a separate
+Node backend.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
