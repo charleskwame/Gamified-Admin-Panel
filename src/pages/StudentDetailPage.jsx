@@ -77,11 +77,15 @@ function normalizeHistoryEntry(snapshot) {
 }
 
 function PerformanceHistoryChart({ history, loading, error }) {
+  const averageScore = history.length > 0 ? history.reduce((total, session) => total + session.score, 0) / history.length : 0;
+  const averageColor = averageScore >= 5 ? "#059669" : "#DC2626";
+
   return (
     <div className="bg-surface border border-border p-6 rounded-xl">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <h2 className="text-base font-bold text-text-primary">Session Performance History</h2>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary sm:justify-end">
+          {history.length > 0 && <span className="font-bold text-text-primary">Average: {averageScore.toFixed(1)}/10</span>}
           <span className="font-semibold text-emerald-600">↑ Above 5: good average</span>
           <span className="font-semibold text-amber-600">↓ Below 5: needs improvement</span>
         </div>
@@ -117,7 +121,14 @@ function PerformanceHistoryChart({ history, loading, error }) {
               stroke="#D97706"
               strokeDasharray="6 4"
               strokeWidth={1.5}
-              label={{ value: "Average 5", position: "insideTopRight", fill: "#B45309", fontSize: 11 }}
+              label={{ value: "Benchmark 5", position: "insideTopRight", fill: "#B45309", fontSize: 11 }}
+            />
+            <ReferenceLine
+              y={averageScore}
+              stroke={averageColor}
+              strokeDasharray="3 3"
+              strokeWidth={1.5}
+              label={{ value: `Average ${averageScore.toFixed(1)}`, position: "insideBottomRight", fill: averageColor, fontSize: 11 }}
             />
             <Tooltip
               contentStyle={{ borderRadius: 4, border: "1px solid #B8CDCD", fontSize: 13 }}
